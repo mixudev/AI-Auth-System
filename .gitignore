@@ -1,0 +1,21 @@
+# Laravel
+laravel-auth-ai/.env
+laravel-auth-ai/vendor
+laravel-auth-ai/node_modules
+laravel-auth-ai/storage/logs/*
+laravel-auth-ai/storage/framework/*
+
+# FastAPI
+ai-security/.env
+ai-security/__pycache__/
+ai-security/.venv
+ai-security/venv
+
+# Docker
+*.log
+
+# Editor
+.vscode
+.idea
+
+

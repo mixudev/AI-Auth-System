@@ -1,0 +1,190 @@
+version: '3.9'
+
+# ============================================================
+# Stack lengkap: Laravel + FastAPI + MySQL + Redis
+# Semua service dalam network internal yang terisolasi.
+# ============================================================
+
+services:
+
+  # ------------------------------------------------------------
+  # Aplikasi Laravel
+  # ------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: laravel-auth-ai/docker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./laravel-auth-ai/.env
+    volumes:
+      - app_storage:/var/www/html/storage
+      # Mount source code saat development untuk hot reload
+      # Hapus baris di bawah ini saat production
+      - ./laravel-auth-ai:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    networks:
+      - internal
+    ports:
+      - "9000:9000"  # PHP-FPM port, diakses oleh nginx
+
+  # ------------------------------------------------------------
+  # Nginx sebagai reverse proxy untuk Laravel
+  # ------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "8080:80"   # Akses aplikasi di http://localhost:8080
+    volumes:
+      - ./laravel-auth-ai:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - internal
+
+  # ------------------------------------------------------------
+  # Queue Worker untuk pengiriman OTP (email async)
+  # ------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: laravel-auth-ai/docker/Dockerfile
+    restart: unless-stopped
+    command: php artisan queue:work redis --queue=notifications-high,default --tries=3 --backoff=5 --sleep=3
+    depends_on:
+      - app
+      - redis
+    env_file:
+      - ./laravel-auth-ai/.env
+    volumes:
+      - ./laravel-auth-ai:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    networks:
+      - internal
+
+  # ------------------------------------------------------------
+  # Scheduler Laravel (cleanup OTP, dll.)
+  # ------------------------------------------------------------
+  scheduler:
+    build:
+      context: .
+      dockerfile: laravel-auth-ai/docker/Dockerfile
+    restart: unless-stopped
+    command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction && sleep 60; done"
+    depends_on:
+      - app
+      - db
+    env_file:
+      - ./laravel-auth-ai/.env
+    volumes:
+      - ./laravel-auth-ai:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    networks:
+      - internal
+
+  # ------------------------------------------------------------
+  # FastAPI Risk Assessment Service
+  # TIDAK diekspos ke luar — hanya diakses oleh 'app'
+  # ------------------------------------------------------------
+  fastapi-risk:
+    build:
+      context: ./ai-security
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./ai-security/.env
+    volumes:
+      - ./ai-security/app/models:/app/app/models  # Persist model file
+      - ./ai-security/logs:/app/logs
+      # Mount source saat development
+      - ./ai-security:/app
+    ports:
+      - "8000:8000"  # Expose untuk akses docs dari host
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ------------------------------------------------------------
+  # phpMyAdmin untuk manajemen database (development only)
+  # ------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootsecret123
+      MYSQL_ROOT_PASSWORD: rootsecret123
+    ports:
+      - "8081:80"
+    networks:
+      - internal
+
+  # ------------------------------------------------------------
+  # MySQL Database
+  # ------------------------------------------------------------
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: secure_auth
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: secret123
+      MYSQL_ROOT_PASSWORD: rootsecret123
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./laravel-auth-ai/docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    ports:
+      - "3307:3306"   # Ekspos untuk akses langsung dari host (development only)
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootsecret123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ------------------------------------------------------------
+  # Redis (cache, session, queue)
+  # ------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"   # Development only
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  db_data:
+  redis_data:
+  app_storage:
+  vendor_data:
+
+networks:
+  internal:
+    driver: bridge

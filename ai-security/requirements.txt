@@ -1,0 +1,31 @@
+# ============================================================
+# Dependencies AI Risk Detection Service
+# Pin semua versi untuk build yang reproduktibel.
+# Update dilakukan secara sengaja, bukan otomatis.
+# ============================================================
+
+# Framework API
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# Validasi data dan konfigurasi
+pydantic==2.10.1
+pydantic-settings==2.6.1
+
+# Machine Learning
+scikit-learn==1.5.2
+numpy==1.26.4
+
+# Parsing data untuk training script
+pandas==2.2.3
+
+# Keamanan tambahan (opsional tapi direkomendasikan)
+# python-multipart diperlukan oleh FastAPI untuk form data
+python-multipart==0.0.12
+
+# Rate limiting (digunakan via slowapi jika diperlukan)
+# slowapi==0.1.9
+
+# WSGI/ASGI server untuk production
+# Gunakan Gunicorn + Uvicorn worker untuk multi-process
+gunicorn==23.0.0
