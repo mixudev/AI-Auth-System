@@ -115,7 +115,7 @@ class LoginAuditService
             'risk_score'         => $result->riskScore,
             'decision'           => $result->decision,
             'reason_flags'       => $result->reasonFlags,
-            'ai_response_raw'    => $result->rawResponse,
+            'ai_response_raw'    => array_merge((array)$result->rawResponse, ['_inputs' => $result->payload]),
             'status'             => $status,
             'occurred_at'        => now(),
         ]);

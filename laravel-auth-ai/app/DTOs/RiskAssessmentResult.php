@@ -13,6 +13,7 @@ readonly class RiskAssessmentResult
         public string $decision,      // ALLOW | OTP | BLOCK
         public array  $reasonFlags,   // Alasan-alasan yang dapat dijelaskan
         public array  $rawResponse,   // Respons mentah untuk keperluan audit
+        public array  $payload = [],  // Input yang dikirim ke AI (untuk training)
         public bool   $isFallback = false, // Apakah skor ini dari rule-based fallback
     ) {}
 

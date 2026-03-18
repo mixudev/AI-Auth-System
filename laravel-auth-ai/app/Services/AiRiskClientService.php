@@ -59,7 +59,7 @@ class AiRiskClientService
                 );
             }
 
-            return $this->parseResponse($response->json());
+            return $this->parseResponse($response->json(), $payload);
 
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::channel('security')->warning('Koneksi ke layanan AI gagal', [
@@ -90,7 +90,7 @@ class AiRiskClientService
      * @param  array<string, mixed>|null  $data
      * @throws \RuntimeException
      */
-    private function parseResponse(?array $data): RiskAssessmentResult
+    private function parseResponse(?array $data, array $payload = []): RiskAssessmentResult
     {
         if (empty($data)) {
             throw new \RuntimeException('Respons AI kosong atau tidak valid');
@@ -122,6 +122,7 @@ class AiRiskClientService
             decision:    $decision,
             reasonFlags: (array) ($data['reason_flags'] ?? []),
             rawResponse: $data,
+            payload:     $payload,
         );
     }
 }

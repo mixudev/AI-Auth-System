@@ -7,46 +7,28 @@ use Illuminate\Support\Facades\Hash;
 
 class UserFactory extends Factory
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Factory untuk menghasilkan data pengguna uji.
-    | Password di-hash menggunakan Argon2id melalui config hashing.
-    |--------------------------------------------------------------------------
-    */
-
-    // Gunakan satu password yang di-hash sekali untuk efisiensi
-    protected static ?string $password;
-
     public function definition(): array
     {
+        static $password = null;
+        $password ??= Hash::make('password'); // hash sekali, reuse
+
         return [
-            'name'              => 'Test User',
-            'email'             => 'test_' . uniqid() . '@example.com',
-            'email_verified_at' => now(),
-            'password'          => static::$password ??= Hash::make('password'),
-            'is_active'         => true,
-            'last_login_at'     => null,
-            'last_login_ip'     => null,
+            'name'              => fake()->name(),
+            'email'             => fake()->unique()->safeEmail(),
+            'email_verified_at' => fake()->optional(0.8)->dateTimeBetween('-2 years'),
+            'password'          => $password,
+            'is_active'         => fake()->boolean(90),
+            'last_login_at'     => fake()->optional(0.7)->dateTimeBetween('-6 months'),
+            'last_login_ip'     => fake()->optional(0.7)->ipv4(),
+            'remember_token'    => null,
+            'created_at'        => fake()->dateTimeBetween('-2 years'),
+            'updated_at'        => now(),
+            'deleted_at'        => null,
         ];
     }
 
-    /**
-     * State untuk pengguna yang belum memverifikasi email.
-     */
-    public function unverified(): static
-    {
-        return $this->state(fn(array $attributes) => [
-            'email_verified_at' => null,
-        ]);
-    }
-
-    /**
-     * State untuk pengguna yang dinonaktifkan.
-     */
     public function inactive(): static
     {
-        return $this->state(fn(array $attributes) => [
-            'is_active' => false,
-        ]);
+        return $this->state(['is_active' => false]);
     }
 }
