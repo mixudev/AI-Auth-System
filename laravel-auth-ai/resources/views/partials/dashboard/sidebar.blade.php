@@ -71,9 +71,9 @@
                             </span>
                             <span class="sidebar-label">Users</span>
 
-                            <span data-value="{{ $stats['users'] }}"
+                            <span data-value="{{ $statscount['users'] }}"
                                 class="short-number sidebar-badge ml-auto text-[10px] font-mono bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-md">
-                                {{ $stats['users'] }}
+                                {{ $statscount['users'] }}
                             </span>
 
                             <span class="sidebar-tooltip">Users</span>
@@ -130,9 +130,9 @@
                                 </svg>
                             </span>
                             <span class="sidebar-label">Auth Logs</span>
-                            <span data-value="{{ $stats['loginLogs'] }}"
+                            <span data-value="{{ $statscount['loginLogs'] }}"
                                 class="short-number sidebar-badge ml-auto text-[10px] font-mono bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-md">
-                                {{ $stats['loginLogs'] }}
+                                {{ $statscount['loginLogs'] }}
                             </span>
                             <span class="sidebar-tooltip">Auth Logs</span>
                         </a>

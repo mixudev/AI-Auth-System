@@ -9,6 +9,19 @@
 
     <title>@yield('title', 'SecureAuth') — AI Auth System</title>
 
+    <script>
+(function () {
+    const theme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (theme === 'dark' || (!theme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+})();
+</script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
@@ -119,14 +132,7 @@
                 rebuildCharts();
             }, 50);
         }
-        (function initTheme() {
-            const saved = localStorage.getItem('theme');
-            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-                document.getElementById('iconMoon').classList.add('hidden');
-                document.getElementById('iconSun').classList.remove('hidden');
-            }
-        })();
+
 
         // ─── SIDEBAR (mobile slide)
         function toggleSidebar() {

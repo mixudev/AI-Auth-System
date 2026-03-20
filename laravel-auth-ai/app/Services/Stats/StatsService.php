@@ -6,18 +6,27 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\User;
 use App\Models\LoginLog;
 use App\Models\TrustedDevice;
+use App\Models\IpBlacklist;
+use App\Models\IpWhitelist;
+use App\Models\OtpVerification;
+use App\Models\UserBlock;
 
 class StatsService
 {
     public function get(): array
     {
         return Cache::remember(
-            'dashboard.stats.raw',
+            'dashboard.statscount.raw',
             now()->addMinutes(5),
             fn () => [
-                'users'       => User::count(),
-                'loginLogs'   => LoginLog::count(),
-                'whitelisted' => TrustedDevice::count(),
+                'users'           => User::count(),
+                'loginLogs'       => LoginLog::count(),
+                'whitelisted'     => TrustedDevice::count(),
+                'IpBlacklist'     => IpBlacklist::count(),
+                'IpWhitelist'     => IpWhitelist::count(),
+                'OtpCount'        => OtpVerification::count(),
+                'UserBlock'       => UserBlock::count(),                
+
             ]
         );
     }

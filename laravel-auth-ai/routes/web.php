@@ -19,11 +19,9 @@ Route::middleware('auth')->group(function () {
     
     Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard.index');
-    })->name('dashboard');
 
 });
 
 // panggil route scurity (dev monitoring)
 require __DIR__.'/scurity.php';
+require __DIR__.'/dashboard.php';
