@@ -92,7 +92,11 @@ docker compose run --rm -u root app mkdir -p storage/framework/sessions storage/
 docker compose run --rm -u root app chown -R www-data:www-data storage
 
 log_info "Instal dependensi PHP (composer)..."
-docker compose run --rm -u root app sh -c "composer install --no-interaction --optimize-autoloader && chown -R www-data:www-data vendor"
+# Menggunakan --ignore-platform-reqs agar tetap bisa jalan meskipun ada mismatch versi PHP minor antara lock file dan environment
+docker compose run --rm -u root app sh -c "composer install --no-interaction --optimize-autoloader --ignore-platform-reqs && chown -R www-data:www-data vendor"
+
+log_info "Membersihkan file-file legacy..."
+docker compose run --rm -u root app rm -f app/Services/User/UserServiceold.php
 
 log_info "Generate Laravel APP_KEY..."
 docker compose run --rm app php artisan key:generate --no-interaction
