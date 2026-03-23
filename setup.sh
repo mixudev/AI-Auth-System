@@ -23,7 +23,8 @@ log_error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 echo ""
 echo "=============================================="
-echo "  Secure Auth System — Setup Awal"
+echo "  Secure Auth System — Setup Awal "
+echo "  !!! Pastikan koneksi internet lancar !!!"
 echo "=============================================="
 echo ""
 
@@ -80,7 +81,7 @@ sleep 15
 # Setup Laravel
 # ----------------------------------------------------------
 log_info "Instal dependensi PHP (composer)..."
-docker compose run --rm app composer install --no-interaction --optimize-autoloader
+docker compose run --rm -u root app sh -c "composer install --no-interaction --optimize-autoloader && chown -R www-data:www-data vendor"
 
 log_info "Generate Laravel APP_KEY..."
 docker compose run --rm app php artisan key:generate --no-interaction
