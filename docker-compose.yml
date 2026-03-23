@@ -142,10 +142,10 @@ services:
     env_file:
       - ./laravel-auth-ai/.env
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: "Mixu_Auth"
+      MYSQL_USER: "app_user"
+      MYSQL_PASSWORD: "app_secure_7261_password_fsaA"
+      MYSQL_ROOT_PASSWORD: "root_secure_9283_password_!"
     volumes:
       - db_data:/var/lib/mysql
       - ./laravel-auth-ai/docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
