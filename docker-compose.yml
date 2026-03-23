@@ -26,6 +26,7 @@ services:
     volumes:
       - app_storage:/var/www/html/storage
       - ./laravel-auth-ai:/var/www/html
+      - ./ai-security/.env:/var/www/ai-security/.env
       - vendor_data:/var/www/html/vendor
     networks:
       - internal
@@ -102,8 +103,8 @@ services:
       - ./ai-security/app/models:/app/app/models
       - ./ai-security/logs:/app/logs
       - ./ai-security:/app
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     networks:
       - internal
     healthcheck:
@@ -127,8 +128,8 @@ services:
       PMA_USER: root
       PMA_PASSWORD: rootsecret123
       MYSQL_ROOT_PASSWORD: rootsecret123
-    ports:
-      - "8081:80"
+    # ports:
+    #   - "8081:80"
     networks:
       - internal
 
@@ -146,8 +147,8 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./laravel-auth-ai/docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
-    ports:
-      - "3307:3306"
+    # ports:
+    #   - "3307:3306"
     networks:
       - internal
     healthcheck:

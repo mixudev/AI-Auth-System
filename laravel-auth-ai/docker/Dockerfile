@@ -2,7 +2,7 @@
 # Dockerfile untuk Laravel 11 — Production-ready
 # ============================================================
 
-FROM php:8.3-fpm-alpine AS base
+FROM php:8.4-fpm-alpine AS base
 
 # -- Instalasi ekstensi PHP yang diperlukan
 RUN apk update && apk add --no-cache \

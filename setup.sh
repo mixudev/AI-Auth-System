@@ -45,14 +45,11 @@ log_info "Memeriksa file konfigurasi..."
 if [ ! -f "laravel-auth-ai/.env" ]; then
     log_warn "File laravel-auth-ai/.env tidak ditemukan. Menyalin dari .env.example..."
     cp laravel-auth-ai/.env.example laravel-auth-ai/.env
-    log_warn "PENTING: Edit laravel-auth-ai/.env dan isi kredensial SMTP Anda sebelum melanjutkan."
-    read -p "Tekan Enter setelah mengisi .env, atau Ctrl+C untuk batal..."
 fi
 
 if [ ! -f "ai-security/.env" ]; then
     log_warn "File ai-security/.env tidak ditemukan. Menyalin dari .env.example..."
     cp ai-security/.env.example ai-security/.env
-    log_warn "PENTING: Pastikan AI_RISK_API_KEY di kedua .env file sama."
 fi
 
 log_success "File konfigurasi siap."
@@ -83,10 +80,13 @@ sleep 15
 # Setup Laravel
 # ----------------------------------------------------------
 log_info "Instal dependensi PHP (composer)..."
-docker compose run --rm app composer install --no-dev --no-interaction --optimize-autoloader
+docker compose run --rm app composer install --no-interaction --optimize-autoloader
 
 log_info "Generate Laravel APP_KEY..."
 docker compose run --rm app php artisan key:generate --no-interaction
+
+log_info "Generate dan sinkronisasi AI API Key..."
+docker compose run --rm app php artisan ai:generate-key --no-interaction
 
 log_info "Menjalankan database migration..."
 docker compose run --rm app php artisan migrate --no-interaction --force

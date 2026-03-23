@@ -23,6 +23,8 @@ async def verify_api_key(api_key: str = Security(_api_key_header)) -> str:
     """
     settings = get_settings()
 
+    import hmac
+
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -30,9 +32,8 @@ async def verify_api_key(api_key: str = Security(_api_key_header)) -> str:
             headers={"WWW-Authenticate": "ApiKey"},
         )
 
-    # Perbandingan langsung — cukup aman untuk internal network
-    # Jika perlu constant-time comparison: gunakan hmac.compare_digest()
-    if api_key != settings.API_KEY:
+    # Menggunakan constant-time comparison untuk mencegah timing attacks
+    if not hmac.compare_digest(api_key, settings.API_KEY):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="API Key tidak valid atau tidak memiliki akses.",
