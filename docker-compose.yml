@@ -142,8 +142,8 @@ services:
     environment:
       MYSQL_DATABASE: secure_auth
       MYSQL_USER: app_user
-      MYSQL_PASSWORD: app_secure_7261_password_#
-      MYSQL_ROOT_PASSWORD: root_secure_9283_password_!
+      MYSQL_PASSWORD: "app_secure_7261_password_#"
+      MYSQL_ROOT_PASSWORD: "root_secure_9283_password_!"
     volumes:
       - db_data:/var/lib/mysql
       - ./laravel-auth-ai/docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro

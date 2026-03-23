@@ -90,6 +90,53 @@ sudo certbot --nginx -d nama-domain-anda.com
 
 ---
 
+## 🛠️ Instalasi Manual (Tanpa Script Setup)
+
+Jika Anda ingin melakukan instalasi secara manual langkah demi langkah, ikuti urutan berikut agar sistem berjalan tanpa error:
+
+### 1. Persiapan File Environment
+```bash
+cp laravel-auth-ai/.env.example laravel-auth-ai/.env
+cp ai-security/.env.example ai-security/.env
+```
+
+### 2. Inisialisasi Direktori Storage (Wajib)
+Laravel membutuhkan struktur folder ini agar tidak muncul error `cache path`:
+```bash
+mkdir -p laravel-auth-ai/storage/framework/{sessions,views,cache}
+mkdir -p laravel-auth-ai/storage/logs
+chmod -R 777 laravel-auth-ai/storage
+```
+
+### 3. Build & Jalankan Database
+```bash
+docker compose build
+docker compose up -d db redis
+# Tunggu sekitar 15-20 detik agar database siap
+```
+
+### 4. Instal Dependensi PHP
+Gunakan user `root` dan abaikan pengecekan platform untuk kompatibilitas ekstensi:
+```bash
+docker compose run --rm -u root app composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
+docker compose run --rm -u root app chown -R www-data:www-data vendor storage
+```
+
+### 5. Generate Keys
+```bash
+# Generate APP_KEY
+docker compose run --rm app php artisan key:generate
+
+# Generate & Sinkronisasi AI API Key
+docker compose run --rm app php artisan ai:generate-key
+```
+
+### 6. Migrasi Database & Jalankan
+```bash
+docker compose run --rm app php artisan migrate --force
+docker compose up -d
+```
+
 ## 🔐 Manajemen API Key
 
 Sistem ini menggunakan kunci rahasia untuk komunikasi antara Laravel dan AI Service. Anda bisa me-rotate kunci ini kapan saja:
