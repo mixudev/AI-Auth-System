@@ -28,6 +28,18 @@ Route::prefix('auth')->name('auth.')->group(function () {
     Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])
         ->middleware(PreAuthRateLimitMiddleware::class)
         ->name('otp.verify');
+
+    // Password Reset API
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware(PreAuthRateLimitMiddleware::class)
+        ->name('password.email');
+
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware(PreAuthRateLimitMiddleware::class)
+        ->name('password.update');
+
+    Route::get('/reset-password/validate', [AuthController::class, 'validateResetToken'])
+        ->name('password.validate');
 });
 
 // -- Route yang memerlukan autentikasi

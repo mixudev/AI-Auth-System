@@ -147,6 +147,12 @@
                         @error('password')
                             <div class="field-error">{{ $message }}</div>
                         @enderror
+
+                        <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+                            <a href="{{ route('password.request') }}" style="font-size: 0.75rem; color: #818cf8; text-decoration: none;">
+                                Lupa Password?
+                            </a>
+                        </div>
                     </div>
 
                     {{-- Submit --}}

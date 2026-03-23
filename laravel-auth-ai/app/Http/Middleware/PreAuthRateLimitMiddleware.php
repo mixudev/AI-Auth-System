@@ -33,20 +33,24 @@ class PreAuthRateLimitMiddleware
         $decayMins   = (int) ($config['decay_minutes'] ?? 15);
         $captchaAfter = (int) ($config['captcha_after'] ?? 3);
 
-        // Kunci unik berdasarkan kombinasi email yang dicoba dan IP
-        $key = $this->buildRateLimitKey($request);
+        // Tentukan konteks berdasarkan route name (auth.login, auth.password.email, dsb)
+        $context = $this->determineContext($request);
+
+        // Kunci unik berdasarkan kombinasi email + IP + KONTEKS
+        $key = $this->buildRateLimitKey($request, $context);
 
         // Periksa apakah batas sudah terlampaui
         if ($this->limiter->tooManyAttempts($key, $maxAttempts)) {
             $secondsUntilFree = $this->limiter->availableIn($key);
 
-            Log::channel('security')->warning('Rate limit login terlampaui', [
+            Log::channel('security')->warning('Rate limit ' . $context . ' terlampaui', [
                 'ip_address'    => $request->ip(),
                 'email_attempted' => $request->input('email'),
+                'context'       => $context,
                 'retry_after'   => $secondsUntilFree,
             ]);
 
-            return $this->buildThrottleResponse($secondsUntilFree);
+            return $this->buildThrottleResponse($secondsUntilFree, $context);
         }
 
         // Tambah hitungan percobaan sebelum meneruskan request
@@ -65,26 +69,50 @@ class PreAuthRateLimitMiddleware
     }
 
     /**
-     * Bangun kunci rate limit yang unik.
-     * Format: login|{hash_email}|{hash_ip}
+     * Tentukan konteks permintaan (login, forgot_password, reset_password).
      */
-    private function buildRateLimitKey(Request $request): string
+    private function determineContext(Request $request): string
+    {
+        $routeName = (string) $request->route()?->getName();
+
+        if (str_contains($routeName, 'password.email')) {
+            return 'forgot_password';
+        }
+
+        if (str_contains($routeName, 'password.update')) {
+            return 'reset_password';
+        }
+
+        return 'login';
+    }
+
+    /**
+     * Bangun kunci rate limit yang unik.
+     * Format: {context}|{hash_email}|{hash_ip}
+     */
+    private function buildRateLimitKey(Request $request, string $context): string
     {
         $emailHash = sha1(strtolower((string) $request->input('email', '')));
         $ipHash    = sha1($request->ip());
 
-        return "login|{$emailHash}|{$ipHash}";
+        return "{$context}|{$emailHash}|{$ipHash}";
     }
 
     /**
      * Bangun respons JSON yang informatif saat rate limit tercapai.
      */
-    private function buildThrottleResponse(int $retryAfterSeconds): JsonResponse
+    private function buildThrottleResponse(int $retryAfterSeconds, string $context = 'login'): JsonResponse
     {
         $retryAfterMinutes = ceil($retryAfterSeconds / 60);
 
+        $message = match($context) {
+            'forgot_password' => "Terlalu banyak permintaan reset password. Coba lagi dalam {$retryAfterMinutes} menit.",
+            'reset_password'  => "Terlalu banyak percobaan reset password. Coba lagi dalam {$retryAfterMinutes} menit.",
+            default           => "Terlalu banyak percobaan login. Coba lagi dalam {$retryAfterMinutes} menit.",
+        };
+
         return response()->json([
-            'message'    => "Terlalu banyak percobaan login. Coba lagi dalam {$retryAfterMinutes} menit.",
+            'message'    => $message,
             'error_code' => 'TOO_MANY_ATTEMPTS',
             'retry_after' => $retryAfterSeconds,
         ], Response::HTTP_TOO_MANY_REQUESTS)

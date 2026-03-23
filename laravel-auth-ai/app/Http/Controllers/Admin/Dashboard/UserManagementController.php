@@ -127,14 +127,18 @@ class UserManagementController extends Controller
     public function resetPassword(User $user): JsonResponse
     {
         try {
-            $status = $this->userService->sendPasswordReset($user);
+            $success = $this->userService->sendPasswordReset($user);
 
-            return response()->json([
-                'success' => $status === \Illuminate\Support\Facades\Password::RESET_LINK_SENT,
-                'message' => "Link reset password dikirim ke {$user->email}.",
-            ]);
-        } catch (\Throwable $e) {
+            if ($success) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Link reset password berhasil dikirim ke {$user->email}.",
+                ]);
+            }
+
             return response()->json(['success' => false, 'message' => 'Gagal mengirim email reset.'], 500);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan saat mengirim link reset.'], 500);
         }
     }
 

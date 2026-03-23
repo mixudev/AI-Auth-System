@@ -13,6 +13,7 @@ use App\Services\Security\DeviceFingerprintService;
 use App\Services\Auth\LoginAuditService;
 use App\Services\Auth\LoginRiskService;
 use App\Services\Auth\OtpService;
+use App\Services\Auth\PasswordResetService;
 use App\Services\Security\RiskFallbackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +33,8 @@ class AuthController extends Controller
         private readonly LoginAuditService        $auditService,
         private readonly TrustedDeviceRepository  $trustedDeviceRepo,
         private readonly DeviceFingerprintService $fingerprintService,
-        private readonly BlockingService          $blockingService,   // ← tambah
+        private readonly BlockingService          $blockingService,
+        private readonly PasswordResetService     $passwordResetService,
     ) {}
 
     /**
@@ -168,6 +170,102 @@ class AuthController extends Controller
         ]);
 
         return response()->json(['message' => 'Anda berhasil keluar dari sistem.']);
+    }
+
+    /**
+     * POST /auth/forgot-password
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+
+        // Keamanan: Jangan beri tahu jika email tidak ada (mencegah enumerasi)
+        if ($user) {
+            $token = $this->passwordResetService->createToken($user->email);
+            $user->notify(new \App\Notifications\ResetPasswordNotification($token, $user->email));
+            
+            Log::channel('security')->info('Permintaan reset password dikirim', [
+                'email' => $user->email,
+                'ip'    => $request->ip()
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Jika email terdaftar di sistem kami, instruksi reset telah dikirim.',
+        ]);
+    }
+
+    /**
+     * POST /auth/reset-password
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email'    => 'required|email',
+            'token'    => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // 1. Validasi Token
+        $validation = $this->passwordResetService->validateToken($request->email, $request->token);
+
+        if (! $validation['success']) {
+            $message = match ($validation['reason']) {
+                'expired' => 'Link reset password sudah kedaluwarsa.',
+                default   => 'Link reset password tidak valid.',
+            };
+
+            return response()->json([
+                'message'    => $message,
+                'error_code' => 'INVALID_RESET_TOKEN',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        // 2. Update Password
+        $user = User::where('email', $request->email)->firstOrFail();
+        
+        // Laravel 11 otomatis hash karena cast 'hashed' di Model User
+        $user->update(['password' => $request->password]);
+
+        // 3. Invalidasi Token & Logout Sesi Lain
+        $this->passwordResetService->deleteToken($user->email);
+
+        Log::channel('security')->info('Password berhasil direset', [
+            'user_id' => $user->id,
+            'email'   => $user->email,
+            'ip'      => $request->ip()
+        ]);
+
+        return response()->json([
+            'message' => 'Password Anda berhasil diperbarui. Silakan login kembali.',
+        ]);
+    }
+
+    /**
+     * GET /auth/reset-password/validate
+     */
+    public function validateResetToken(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'token' => 'required|string',
+        ]);
+
+        $validation = $this->passwordResetService->validateToken($request->email, $request->token);
+
+        if (! $validation['success']) {
+            return response()->json([
+                'valid'   => false,
+                'message' => match ($validation['reason']) {
+                    'expired' => 'Link reset password sudah kedaluwarsa.',
+                    default   => 'Link reset password tidak valid.',
+                },
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return response()->json(['valid' => true]);
     }
 
     // -----------------------------------------------------------------------

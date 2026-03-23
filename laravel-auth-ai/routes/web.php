@@ -13,6 +13,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [WebAuthController::class, 'login'])->name('login.post');
     Route::get('/otp', [WebAuthController::class, 'showOtp'])->name('otp.verify');
     Route::post('/otp', [WebAuthController::class, 'verifyOtp'])->name('otp.verify.post');
+
+    // Forgot Password
+    Route::get('/forgot-password', [WebAuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [WebAuthController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [WebAuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [WebAuthController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::middleware('auth')->group(function () {

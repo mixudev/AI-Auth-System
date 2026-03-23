@@ -4,6 +4,7 @@ namespace App\Services\User;
 
 use App\Models\User;
 use App\Models\UserBlock;
+use App\Services\Auth\PasswordResetService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,9 @@ use Illuminate\Support\Facades\Password;
 
 class UserService
 {
+    public function __construct(
+        private readonly PasswordResetService $passwordResetService
+    ) {}
     /**
      * Ambil daftar user dengan filter, search, dan sort.
      */
@@ -193,11 +197,17 @@ class UserService
     }
 
     /**
-     * Kirim link reset password.
+     * Kirim link reset password (menggunakan servis kustom).
      */
-    public function sendPasswordReset(User $user): string
+    public function sendPasswordReset(User $user): bool
     {
-        return Password::sendResetLink(['email' => $user->email]);
+        try {
+            $token = $this->passwordResetService->createToken($user->email);
+            $user->notify(new \App\Notifications\ResetPasswordNotification($token, $user->email));
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**

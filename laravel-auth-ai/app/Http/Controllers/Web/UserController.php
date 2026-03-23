@@ -16,7 +16,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $search = $request->query('search');
-        $users = $this->userService->getPaginatedUsers(15, $search);
+        $users = $this->userService->getUsers(['search' => $search]);
         
         return view('admin.users.index', compact('users', 'search'));
     }

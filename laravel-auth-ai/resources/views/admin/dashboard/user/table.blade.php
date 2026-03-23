@@ -152,7 +152,7 @@
 
                             {{-- Reset Password --}}
                             <button
-                                onclick="sendResetPassword({{ $user->id }}, '{{ addslashes($user->email) }}')"
+                                onclick="sendResetPassword({{ $user->id }}, '{{ addslashes($user->email) }}', this)"
                                 class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-amber-100 dark:hover:bg-amber-500/15 hover:text-amber-600 dark:hover:text-amber-400 transition-all"
                                 title="Reset Password"
                             >

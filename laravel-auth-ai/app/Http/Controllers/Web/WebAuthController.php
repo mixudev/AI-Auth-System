@@ -164,6 +164,70 @@ class WebAuthController extends Controller
             ->with('success', 'Anda telah berhasil logout.');
     }
 
+    public function showForgotPassword()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+        ])->asForm()->post($this->apiBase . '/auth/forgot-password', [
+            'email' => $request->email,
+        ]);
+
+        return back()->with('success', $response->json()['message'] ?? 'Permintaan reset telah dikirim.');
+    }
+
+    public function showResetPassword(Request $request, $token)
+    {
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+        ])->get($this->apiBase . '/auth/reset-password/validate', [
+            'email' => $request->email,
+            'token' => $token,
+        ]);
+
+        if (! $response->successful()) {
+            return view('auth.reset-link-expired', [
+                'message' => $response->json()['message'] ?? 'Link reset password tidak valid atau kadaluarsa.'
+            ]);
+        }
+
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $request->email,
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email'                 => 'required|email',
+            'token'                 => 'required|string',
+            'password'              => 'required|string|min:8|confirmed',
+            'password_confirmation' => 'required',
+        ]);
+
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+        ])->asForm()->post($this->apiBase . '/auth/reset-password', [
+            'email'                 => $request->email,
+            'token'                 => $request->token,
+            'password'              => $request->password,
+            'password_confirmation' => $request->password_confirmation,
+        ]);
+
+        if ($response->successful()) {
+            return redirect()->route('login')->with('success', $response->json()['message']);
+        }
+
+        return back()->withErrors(['email' => $response->json()['message'] ?? 'Gagal meriset password.']);
+    }
+
     // -------------------------------------------------------------------------
     // Private
     // -------------------------------------------------------------------------

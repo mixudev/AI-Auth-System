@@ -391,10 +391,23 @@ $colorMap = [
         }).catch(function(){ setLoading('editSubmitBtn', 'editSpinner', false); showError('editError', 'Terjadi kesalahan server.'); });
     };
 
-    window.sendResetPasswordFromEdit = function () {
+    window.sendResetPasswordFromEdit = function (btn) {
         var id = document.getElementById('editUserId').value;
         if (!id) return;
-        api('POST', ROUTES.resetPwd(id)).then(function(res){ showToast(res.success ? 'success' : 'error', res.message); });
+        
+        var originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Mengirim...';
+
+        api('POST', ROUTES.resetPwd(id)).then(function(res){
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            showToast(res.success ? 'success' : 'error', res.message);
+        }).catch(function(){
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            showToast('error', 'Terjadi kesalahan sistem.');
+        });
     };
 
     // ── DETAIL ────────────────────────────────────────────────────────────────
@@ -504,15 +517,25 @@ $colorMap = [
     };
 
     // ── RESET PASSWORD ────────────────────────────────────────────────────────
-    window.sendResetPassword = function (userId, email) {
+    window.sendResetPassword = function (userId, email, btn) {
         AppPopup.info({
             title: 'Reset Password?',
             description: 'Kirim link reset password ke ' + email + '?',
             confirmText: 'Kirim Link',
             cancelText: 'Batal',
             onConfirm: function() {
+                var originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+
                 api('POST', ROUTES.resetPwd(userId)).then(function(res){
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
                     showToast(res.success ? 'success' : 'error', res.message);
+                }).catch(function(){
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    showToast('error', 'Terjadi kesalahan sistem.');
                 });
             }
         });
