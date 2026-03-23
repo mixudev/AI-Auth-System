@@ -2,6 +2,17 @@
 
 Gunakan tabel ini sebagai bantuan pertama jika sistem mengalami kendala teknis.
 
+## 🔴 5. Error: "DNS: transient error" atau "getaddrinfo failed" (saat Build)
+**Gejala**: `apk update` atau `pecl install` gagal menghubungi server luar (seperti `pecl.php.net` atau `alpine mirror`).
+- **Penyebab**: Docker tidak bisa melakukan resolusi DNS. Sering terjadi di Windows/WSL2 atau jaringan dengan VPN.
+- **Solusi**:
+  1. **Restart Docker Desktop**: Seringkali ini cara tercepat.
+  2. **Ganti DNS di Docker Desktop**: 
+     - Buka **Settings** -> **Docker Engine**.
+     - Tambahkan/edit JSON: `"dns": ["8.8.8.8", "1.1.1.1"]`.
+     - Klik **Apply & Restart**.
+  3. **WSL2 (Windows)**: Masuk ke terminal WSL dan jalankan `printf "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo tee /etc/resolv.conf`.
+
 ## 📂 Tabel Error Umum
 
 | Pesan / Kode Error | Kemungkinan Penyebab | Langkah Perbaikan |
