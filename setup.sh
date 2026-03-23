@@ -63,6 +63,13 @@ mkdir -p docker/nginx
 mkdir -p ai-security/app/models
 mkdir -p ai-security/logs
 
+# Laravel Storage subdirectories
+mkdir -p laravel-auth-ai/storage/framework/sessions
+mkdir -p laravel-auth-ai/storage/framework/views
+mkdir -p laravel-auth-ai/storage/framework/cache
+mkdir -p laravel-auth-ai/storage/logs
+chmod -R 777 laravel-auth-ai/storage
+
 log_success "Direktori siap."
 
 # ----------------------------------------------------------
