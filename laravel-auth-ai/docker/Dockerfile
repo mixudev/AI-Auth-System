@@ -2,7 +2,7 @@
 # Dockerfile untuk Laravel 11 — Production-ready
 # ============================================================
 
-FROM php:8.3-fpm-alpine AS base
+FROM php:8.4-fpm-alpine AS base
 
 # -- Install PHP Extension Installer (Standard terbaik untuk Docker PHP)
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/

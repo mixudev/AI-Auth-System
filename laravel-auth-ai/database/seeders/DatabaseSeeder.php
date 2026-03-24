@@ -58,9 +58,9 @@ class DatabaseSeeder extends Seeder
             User::create($user);
         }
 
-        $this->call([
-            BigDataSeeder::class,
-        ]);
+        // $this->call([
+        //     BigDataSeeder::class,
+        // ]);
 
     }
 }

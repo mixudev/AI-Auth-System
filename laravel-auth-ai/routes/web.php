@@ -48,6 +48,30 @@ Route::get('/session', function () {
     ]);
 })->middleware(['web', 'auth', 'throttle:5,1'])->name('dev.session');
 
+use App\Mail\TestMail;
+
+Route::get('/test-email', function () {
+
+    abort_if(app()->environment('production'), 404);
+
+Mail::to('Hello@gmail.com')->send(new TestMail(
+    userName: 'John Doe',
+    userEmail: 'Hello@gmail.com',
+    actionUrl: url('/verify?token='),
+    plan: 'Pro',
+    createdAt: now()->format('d M Y'),
+    mailSubject: 'Verifikasi Email Anda — YourApp',
+    unsubscribeUrl: config('app.url') . '/unsubscribe',
+));
+
+    return response()->json([
+        'status' => 'ok',
+        'content' => 'Email test berhasil dikirim',
+    ]);
+});
+
+
 // panggil route scurity (dev monitoring)
 require __DIR__.'/scurity.php';
 require __DIR__.'/dashboard.php';
+require __DIR__.'/email-test.php';

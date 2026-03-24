@@ -16,6 +16,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Blade;   
+
 
 class AppServiceProvider extends ServiceProvider
 {

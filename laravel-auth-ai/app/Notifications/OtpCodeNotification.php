@@ -2,22 +2,14 @@
 
 namespace App\Notifications;
 
+use App\Mail\OtpEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Request;
 
 class OtpCodeNotification extends Notification implements ShouldQueue
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Notifikasi pengiriman kode OTP ke pengguna via email.
-    |
-    | Mengimplementasikan ShouldQueue agar pengiriman email tidak memblokir
-    | respons HTTP (pengiriman dilakukan secara asynchronous).
-    |--------------------------------------------------------------------------
-    */
-
     use Queueable;
 
     public function __construct(
@@ -29,26 +21,17 @@ class OtpCodeNotification extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(object $notifiable): OtpEmail
     {
-        $expiresMinutes = config('security.otp.expires_minutes', 5);
-        $appName        = config('app.name');
-
-        return (new MailMessage)
-            ->subject("[{$appName}] Kode Verifikasi Login Anda")
-            ->greeting("Halo, {$notifiable->name}!")
-            ->line('Kami mendeteksi percobaan login ke akun Anda dari perangkat yang memerlukan verifikasi tambahan.')
-            ->line('Gunakan kode berikut untuk menyelesaikan proses login:')
-            ->line("**{$this->otpCode}**")
-            ->line("Kode ini hanya berlaku selama **{$expiresMinutes} menit** dan hanya dapat digunakan satu kali.")
-            ->line('Jika Anda tidak sedang melakukan login, segera abaikan email ini dan pertimbangkan untuk mengganti password Anda.')
-            ->salutation('Salam, Tim Keamanan ' . $appName);
+        return new OtpEmail(
+            userName:       $notifiable->name,
+            userEmail:      $notifiable->email,
+            otpCode:        $this->otpCode,
+            expiresMinutes: config('security.otp.expires_minutes', 5),
+            ipAddress:      Request::ip() ?? '',
+        );
     }
 
-    /**
-     * Tentukan antrian yang digunakan untuk mengirim notifikasi ini.
-     * Gunakan antrian berprioritas tinggi agar OTP terkirim cepat.
-     */
     public function viaQueues(): array
     {
         return [

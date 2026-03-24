@@ -2,10 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Mail\ResetPasswordEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Request;
 
 class ResetPasswordNotification extends Notification implements ShouldQueue
 {
@@ -21,24 +22,19 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(object $notifiable): ResetPasswordEmail
     {
-        $appName = config('app.name');
-        $baseUrl = rtrim(config('app.url'), '/');
-        
-        $url = $baseUrl . route('password.reset', [
+        $url = url(route('password.reset', [
             'token' => $this->token,
             'email' => $this->email,
-        ], false); // false agar menghasilkan path relatif, lalu kita gabung dengan baseUrl
+        ], false));
 
-        return (new MailMessage)
-            ->subject("[{$appName}] Instruksi Reset Password")
-            ->greeting("Halo, {$notifiable->name}!")
-            ->line('Anda menerima email ini karena kami menerima permintaan reset password untuk akun Anda.')
-            ->action('Reset Password', $url)
-            ->line('Link reset password ini akan kedaluwarsa dalam 60 menit.')
-            ->line('Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini dan pastikan akun Anda tetap aman.')
-            ->salutation('Salam, Tim Keamanan ' . $appName);
+        return new ResetPasswordEmail(
+            userName:  $notifiable->name,
+            userEmail: $notifiable->email,
+            actionUrl: $url,
+            ipAddress: Request::ip() ?? '',
+        );
     }
 
     public function viaQueues(): array

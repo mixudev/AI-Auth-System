@@ -59,6 +59,11 @@ if [ ! -f "ai-security/.env" ]; then
     cp ai-security/.env.example ai-security/.env
 fi
 
+if [ ! -f ".env" ]; then
+    log_warn "File root .env tidak ditemukan. Menyalin dari .env.example..."
+    cp .env.example .env
+fi
+
 log_success "File konfigurasi siap."
 
 # ----------------------------------------------------------
