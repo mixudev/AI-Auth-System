@@ -1,0 +1,21 @@
+{
+  "trained_at": "2026-03-18T15:10:27.353754+00:00",
+  "n_training_samples": 8000,
+  "n_eval_samples": 2000,
+  "contamination": 0.05,
+  "n_estimators": 100,
+  "random_state": 42,
+  "feature_names": [
+    "ip_risk_score",
+    "is_vpn",
+    "is_new_device",
+    "is_new_country",
+    "login_hour_sin",
+    "login_hour_cos",
+    "failed_attempts_norm",
+    "request_speed",
+    "device_trust_score"
+  ],
+  "eval_anomaly_pct": 4.8,
+  "dataset_path": "data/synthetic_login_data.csv"
+}
