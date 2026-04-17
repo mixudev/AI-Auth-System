@@ -58,9 +58,11 @@ class DatabaseSeeder extends Seeder
             User::create($user);
         }
 
-        // $this->call([
-        //     BigDataSeeder::class,
-        // ]);
-
+        // Seed roles, permissions, dan assign ke users
+        $this->call([
+            RolePermissionSeeder::class,
+            UserRoleSeeder::class,
+            // BigDataSeeder::class,
+        ]);
     }
 }

@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // [H-07 CAPTCHA] Konfigurasi Turnstile / hCaptcha
+    'captcha' => [
+        'secret'     => env('CAPTCHA_SECRET'),
+        'site_key'   => env('CAPTCHA_SITE_KEY'),
+        // Default menggunakan Cloudflare Turnstile (Cepat, aman, tidak mengganggu UX)
+        'verify_url' => env('CAPTCHA_VERIFY_URL', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'),
+    ],
+
 ];

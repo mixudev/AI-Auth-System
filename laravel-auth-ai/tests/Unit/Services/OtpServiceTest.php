@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\OtpVerification;
 use App\Models\User;
-use App\Services\OtpService;
+use App\Services\Auth\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -43,7 +43,7 @@ class OtpServiceTest extends TestCase
         $user = User::factory()->create();
         $data = $this->service->generateOtp($user, '127.0.0.1', str_repeat('a', 64));
 
-        $record = OtpVerification::where('session_token', $data['session_token'])->first();
+        $record = OtpVerification::where('session_token_hash', hash('sha256', $data['session_token']))->first();
 
         $this->assertNotNull($record);
         $this->assertNotSame($data['otp_code'], $record->token);
@@ -76,7 +76,7 @@ class OtpServiceTest extends TestCase
         $data = $this->service->generateOtp($user, '127.0.0.1', str_repeat('c', 64));
 
         // Paksa kedaluwarsa
-        OtpVerification::where('session_token', $data['session_token'])
+        OtpVerification::where('session_token_hash', hash('sha256', $data['session_token']))
             ->update(['expires_at' => now()->subMinute()]);
 
         $result = $this->service->verifyOtp($data['session_token'], $data['otp_code']);

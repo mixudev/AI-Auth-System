@@ -26,7 +26,9 @@ return new class extends Migration
             $table->string('token', 255);
 
             // Token sesi sementara untuk menghubungkan proses verifikasi OTP
-            $table->string('session_token', 64)->unique()->index();
+            // Disimpan sebagai hash agar jika DB bocor, token bearer tidak bisa dipakai langsung.
+            // Raw token hanya ada di client dan in-flight.
+            $table->string('session_token_hash', 64)->unique()->index();
 
             // Data konteks percobaan OTP
             $table->ipAddress('ip_address');

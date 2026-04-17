@@ -6,6 +6,8 @@ use Closure;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\Security\DeviceFingerprintService;
@@ -16,10 +18,14 @@ class PreAuthRateLimitMiddleware
     |--------------------------------------------------------------------------
     | Middleware untuk membatasi frekuensi percobaan login.
     |
-    | Dijalankan SEBELUM validasi password untuk mencegah brute-force.
-    | Penghitung dibagi berdasarkan kombinasi email + IP sehingga:
-    | - Satu IP tidak dapat menyerang banyak akun sekaligus
-    | - Satu akun tidak dapat diserang dari banyak IP sekaligus
+    | Dua lapis perlindungan:
+    |   Layer 1 — Per-IP global  : ip_max_attempts/decay_minutes dari satu IP
+    |             [H-01 FIX] Mencegah bypass rate-limit dengan rotasi email.
+    |   Layer 2 — Per-email + IP : max_attempts/decay_minutes per kombinasi
+    |
+    | [H-07 FIX] Backend CAPTCHA Enforcement:
+    |   Setelah captcha_after gagal, token CAPTCHA wajib dikirim dan diverifikasi
+    |   di backend sebelum request diteruskan ke controller.
     |--------------------------------------------------------------------------
     */
 
@@ -30,40 +36,80 @@ class PreAuthRateLimitMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        $config      = config('security.rate_limit');
-        $maxAttempts = (int) ($config['max_attempts'] ?? 5);
-        $decayMins   = (int) ($config['decay_minutes'] ?? 15);
-        $captchaAfter = (int) ($config['captcha_after'] ?? 3);
+        $config        = config('security.rate_limit');
+        $maxAttempts   = (int) ($config['max_attempts'] ?? 5);
+        $decayMins     = (int) ($config['decay_minutes'] ?? 15);
+        $captchaAfter  = (int) ($config['captcha_after'] ?? 3);
+        $challengeType = $config['challenge'] ?? 'captcha';
+        $ipMaxAttempts = (int) ($config['ip_max_attempts'] ?? 20);
 
-        // Tentukan konteks berdasarkan route name (auth.login, auth.password.email, dsb)
+        $ip      = $this->fingerprintService->getRealIp($request);
         $context = $this->determineContext($request);
 
-        // Kunci unik berdasarkan kombinasi email + IP + KONTEKS
-        $key = $this->buildRateLimitKey($request, $context);
+        // ── Layer 1: Rate limit per-IP (global, semua email) ─────────────────
+        $ipOnlyKey = "ratelimit:ip:{$context}:" . sha1($ip);
+        if ($this->limiter->tooManyAttempts($ipOnlyKey, $ipMaxAttempts)) {
+            $waitSeconds = $this->limiter->availableIn($ipOnlyKey);
 
-        // Periksa apakah batas sudah terlampaui
-        if ($this->limiter->tooManyAttempts($key, $maxAttempts)) {
-            $secondsUntilFree = $this->limiter->availableIn($key);
-
-            Log::channel('security')->warning('Rate limit ' . $context . ' terlampaui', [
-                'ip_address'    => $this->fingerprintService->getRealIp($request),
-                'email_attempted' => $request->input('email'),
-                'context'       => $context,
-                'retry_after'   => $secondsUntilFree,
+            Log::channel('security')->warning('Rate limit IP global terlampaui', [
+                'ip_address'  => $ip,
+                'context'     => $context,
+                'retry_after' => $waitSeconds,
             ]);
 
-            return $this->buildThrottleResponse($secondsUntilFree, $context);
+            return $this->buildThrottleResponse($request, $waitSeconds, 'global_ip');
         }
 
-        // Tambah hitungan percobaan sebelum meneruskan request
+        // ── Layer 2: Rate limit per-email + IP (spesifik) ────────────────────
+        $key = $this->buildRateLimitKey($request, $context);
+        if ($this->limiter->tooManyAttempts($key, $maxAttempts)) {
+            $waitSeconds = $this->limiter->availableIn($key);
+
+            Log::channel('security')->warning('Rate limit ' . $context . ' (email+IP) terlampaui', [
+                'ip_address'      => $ip,
+                'email_attempted' => $request->input('email'),
+                'context'         => $context,
+                'retry_after'     => $waitSeconds,
+            ]);
+
+            return $this->buildThrottleResponse($request, $waitSeconds, $context);
+        }
+
+        // ── [H-07] Backend CAPTCHA Enforcement ───────────────────────────────
+        $captchaRequiredKey = "captcha_required:{$key}";
+        if ($challengeType === 'captcha' && Cache::has($captchaRequiredKey)) {
+            $captchaToken = $request->input('captcha_token');
+            if (! $this->verifyCaptchaToken($captchaToken)) {
+                
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return response()->json([
+                        'message'          => 'Verifikasi Keamanan diperlukan sebelum melanjutkan.',
+                        'error_code'       => 'CAPTCHA_REQUIRED',
+                        'requires_captcha' => true,
+                    ], Response::HTTP_TOO_MANY_REQUESTS);
+                }
+
+                // Untuk request web standar (Blade), kembalikan dengan error form
+                return back()
+                    ->withInput($request->except('password', 'captcha_token'))
+                    ->withErrors(['captcha_token' => 'Harap lengkapi verifikasi keamanan untuk membuktikan Anda bukan robot.'])
+                    ->with('requires_captcha', true);
+            }
+            // Token valid → bersihkan flag agar tidak terus menghalangi
+            Cache::forget($captchaRequiredKey);
+        }
+
+        // ── Catat percobaan pada kedua layer ──────────────────────────────────
         $this->limiter->hit($key, $decayMins * 60);
+        $this->limiter->hit($ipOnlyKey, $decayMins * 60);
 
         $currentAttempts = $this->limiter->attempts($key);
 
         $response = $next($request);
 
-        // Jika login gagal (password salah), tambahkan header CAPTCHA jika mendekati batas
-        if ($currentAttempts >= $captchaAfter) {
+        // Setelah N gagal → set flag CAPTCHA required di cache + header hint ke klien (hanya jika mode captcha aktif)
+        if ($currentAttempts >= $captchaAfter && $challengeType === 'captcha') {
+            Cache::put($captchaRequiredKey, true, now()->addMinutes($decayMins));
             $response->headers->set('X-Captcha-Required', 'true');
         }
 
@@ -71,7 +117,45 @@ class PreAuthRateLimitMiddleware
     }
 
     /**
-     * Tentukan konteks permintaan (login, forgot_password, reset_password).
+     * Verifikasi token CAPTCHA ke penyedia eksternal (hCaptcha / Turnstile).
+     * Jika CAPTCHA_SECRET tidak dikonfigurasi, lewati di non-production.
+     */
+    private function verifyCaptchaToken(?string $token): bool
+    {
+        if (empty($token)) {
+            return false;
+        }
+
+        $secret = config('services.captcha.secret');
+
+        // Dev mode: jika secret belum dikonfigurasi, lewati verifikasi
+        if (empty($secret)) {
+            Log::channel('security')->debug('CAPTCHA secret belum dikonfigurasi — melewati verifikasi (dev mode)');
+            return true;
+        }
+
+        try {
+            $verifyUrl = config('services.captcha.verify_url', 'https://hcaptcha.com/siteverify');
+            $result    = Http::asForm()
+                ->timeout(5)
+                ->post($verifyUrl, [
+                    'secret'   => $secret,
+                    'response' => $token,
+                ]);
+
+            return (bool) $result->json('success', false);
+        } catch (\Throwable $e) {
+            Log::channel('security')->warning('Verifikasi CAPTCHA gagal (exception)', [
+                'error' => $e->getMessage(),
+            ]);
+
+            // Fail-open pada error jaringan agar tidak memblokir user sah
+            return true;
+        }
+    }
+
+    /**
+     * Tentukan konteks permintaan berdasarkan nama route.
      */
     private function determineContext(Request $request): string
     {
@@ -89,8 +173,8 @@ class PreAuthRateLimitMiddleware
     }
 
     /**
-     * Bangun kunci rate limit yang unik.
-     * Format: {context}|{hash_email}|{hash_ip}
+     * Bangun kunci rate limit per-email + IP + konteks.
+     * Format: {context}|{sha1_email}|{sha1_ip}
      */
     private function buildRateLimitKey(Request $request, string $context): string
     {
@@ -101,25 +185,35 @@ class PreAuthRateLimitMiddleware
     }
 
     /**
-     * Bangun respons JSON yang informatif saat rate limit tercapai.
+     * Bangun response 429 yang kontekstual (mendukung Web maupun API).
      */
-    private function buildThrottleResponse(int $retryAfterSeconds, string $context = 'login'): JsonResponse
+    private function buildThrottleResponse(Request $request, int $retryAfterSeconds, string $context = 'login'): Response
     {
-        $retryAfterMinutes = ceil($retryAfterSeconds / 60);
+        $retryAfterMinutes = (int) ceil($retryAfterSeconds / 60);
 
-        $message = match($context) {
+        $message = match ($context) {
             'forgot_password' => "Terlalu banyak permintaan reset password. Coba lagi dalam {$retryAfterMinutes} menit.",
             'reset_password'  => "Terlalu banyak percobaan reset password. Coba lagi dalam {$retryAfterMinutes} menit.",
-            default           => "Terlalu banyak percobaan login. Coba lagi dalam {$retryAfterMinutes} menit.",
+            'global_ip'       => "Terlalu banyak aktivitas dari sistem Anda. Akses dibatasi sementara hingga {$retryAfterMinutes} menit.",
+            default           => "Terlalu banyak percobaan login gagal. Coba lagi dalam {$retryAfterMinutes} menit.",
         };
 
-        return response()->json([
-            'message'    => $message,
-            'error_code' => 'TOO_MANY_ATTEMPTS',
-            'retry_after' => $retryAfterSeconds,
-        ], Response::HTTP_TOO_MANY_REQUESTS)
-        ->withHeaders([
-            'Retry-After' => $retryAfterSeconds,
-        ]);
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'message'     => $message,
+                'error_code'  => 'TOO_MANY_ATTEMPTS',
+                'retry_after' => $retryAfterSeconds,
+            ], Response::HTTP_TOO_MANY_REQUESTS)
+                ->withHeaders([
+                    'Retry-After' => $retryAfterSeconds,
+                ]);
+        }
+
+        return back()
+            ->withInput($request->except('password'))
+            ->withErrors(['email' => $message])
+            ->withHeaders([
+                'Retry-After' => $retryAfterSeconds,
+            ]);
     }
 }

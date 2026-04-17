@@ -2,6 +2,11 @@
 
 return [
 
+    'admin_emails' => array_values(array_filter(array_map(
+        static fn (string $email) => strtolower(trim($email)),
+        explode(',', (string) env('ADMIN_EMAILS', ''))
+    ))),
+
     /*
     |--------------------------------------------------------------------------
     | Konfigurasi Threshold Risiko AI
@@ -25,6 +30,7 @@ return [
         'length'          => 6,           // Panjang kode OTP
         'expires_minutes' => 5,           // Masa berlaku OTP dalam menit
         'max_attempts'    => 3,           // Maksimum percobaan verifikasi OTP
+        'cooldown_seconds' => 60,         // Jeda minimum antar OTP baru
         'channel'         => 'email',     // Channel pengiriman: email | sms
     ],
 
@@ -34,9 +40,10 @@ return [
     |--------------------------------------------------------------------------
     */
     'rate_limit' => [
-        'max_attempts'     => 5,          // Maksimum percobaan login
+        'max_attempts'     => (int) env('RATE_LIMIT_MAX_ATTEMPTS', 5), // Maksimum percobaan login sebelum di-block/throttle
         'decay_minutes'    => 15,         // Durasi lockout dalam menit
-        'captcha_after'    => 3,          // Tampilkan CAPTCHA setelah N kali gagal
+        'challenge'        => env('RATE_LIMIT_CHALLENGE', 'captcha'), // Opsi challenge: 'captcha' | 'throttle'
+        'captcha_after'    => 3,          // Tampilkan CAPTCHA setelah N kali gagal (jika challenge=captcha)
     ],
 
     /*
@@ -60,6 +67,7 @@ return [
     'session' => [
         'bind_to_fingerprint' => true,    // Ikat sesi ke fingerprint perangkat
         'trusted_device_days' => 30,      // Durasi kepercayaan perangkat dalam hari
+        'trusted_device_cookie_minutes' => 60 * 24 * 30,
     ],
 
     /*

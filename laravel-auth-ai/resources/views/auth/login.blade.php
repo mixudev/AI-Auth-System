@@ -155,6 +155,42 @@
                         </div>
                     </div>
 
+                    {{-- Captcha Block --}}
+                    @if (session('requires_captcha') || $errors->has('captcha_token'))
+                        <div class="form-group" style="padding: 12px; border: 1px solid #ef4444; border-radius: 6px; background-color: rgba(239, 68, 68, 0.05); margin-bottom: 1rem;">
+                            <p style="font-size: 0.85rem; color: #dc2626; margin-bottom: 8px;">
+                                Terdeteksi aktivitas bot. Selesaikan verifikasi sistem.
+                            </p>
+                            
+                            @if(config('services.captcha.site_key'))
+                                {{-- Widget CAPTCHA Asli (Cloudflare Turnstile) --}}
+                                <div class="cf-turnstile" data-sitekey="{{ config('services.captcha.site_key') }}" data-action="login" data-theme="dark" data-response-field-name="captcha_token"></div>
+                            @else
+                                {{-- Mode Bypass/Fallback untuk Development apabila env CAPTCHA belum diisi --}}
+                                <label class="form-label" style="color: #ef4444;" for="captcha_token">Mode Bypass Dev (Isi sembarang teks)</label>
+                                <input
+                                    type="text"
+                                    name="captcha_token"
+                                    id="captcha_token"
+                                    class="form-input {{ $errors->has('captcha_token') ? 'is-error' : '' }}"
+                                    placeholder="Input test (Bypass Mode Dev)"
+                                    required
+                                />
+                            @endif
+                            
+                            @error('captcha_token')
+                                <div class="field-error" style="color: #ef4444;">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        {{-- Load library CAPTCHA secara dinamis hanya saat dibutuhkan --}}
+                        @if(config('services.captcha.site_key'))
+                            @push('scripts')
+                                <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+                            @endpush
+                        @endif
+                    @endif
+
                     {{-- Submit --}}
                     <div class="btn-submit-wrap">
                         <button type="submit" class="btn-submit" id="btn-submit" {{ session('rate_limited') ? 'disabled' : '' }}>

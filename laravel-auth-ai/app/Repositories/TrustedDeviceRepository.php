@@ -24,8 +24,14 @@ class TrustedDeviceRepository
      * Daftarkan perangkat baru sebagai perangkat terpercaya milik pengguna.
      * Menggunakan UUID dari cookie sebagai identitas utama.
      */
-    public function trustDevice(int $userId, Request $request, string $deviceId): TrustedDevice
+    public function trustDevice(int $userId, Request $request): ?TrustedDevice
     {
+        $fingerprintHash = $this->fingerprintService->generate($request);
+
+        if ($fingerprintHash === '') {
+            return null;
+        }
+
         $deviceLabel  = $this->fingerprintService->buildDeviceLabel($request);
         $trustedDays  = config('security.session.trusted_device_days', 30);
         $ip           = $this->fingerprintService->getRealIp($request);
@@ -37,7 +43,7 @@ class TrustedDeviceRepository
         $device = TrustedDevice::updateOrCreate(
             [
                 'user_id'          => $userId,
-                'fingerprint_hash' => $deviceId,
+                'fingerprint_hash' => $fingerprintHash,
             ],
             [
                 'device_signature' => $signature,
@@ -52,7 +58,7 @@ class TrustedDeviceRepository
 
         Log::channel('security')->info('Device dipercaya/diperbarui dengan UA-Binding', [
             'user_id'       => $userId,
-            'device_id'     => substr($deviceId, 0, 8) . '...',
+            'fingerprint'   => substr($fingerprintHash, 0, 12) . '...',
             'signature'     => substr($signature, 0, 8) . '...',
             'ip'            => $ip,
             'trusted_until' => $device->trusted_until?->toDateTimeString(),
@@ -66,7 +72,6 @@ class TrustedDeviceRepository
      */
     public function isTrusted(int $userId, string $fingerprint): bool
     {
-        // Cari perangkat berdasarkan User ID dan ID unik (Cookie UUID)
         $device = TrustedDevice::where('user_id', $userId)
             ->where('fingerprint_hash', $fingerprint)
             ->first();

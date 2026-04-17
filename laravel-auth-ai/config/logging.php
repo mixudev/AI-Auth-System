@@ -55,7 +55,7 @@ return [
         'security' => [
             'driver'    => 'daily',
             'path'      => storage_path('logs/security.log'),
-            'level'     => 'info',
+            'level'     => env('SECURITY_LOG_LEVEL', 'info'), // [L-03 FIX]
             'days'      => env('SECURITY_LOG_DAYS', 90), // Simpan 90 hari untuk audit
             'formatter' => Monolog\Formatter\JsonFormatter::class, // JSON untuk parsing mudah
             'replace_placeholders' => true,

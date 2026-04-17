@@ -11,7 +11,6 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Session;
 
 class EmailVerificationController extends Controller
 {
@@ -29,6 +28,10 @@ class EmailVerificationController extends Controller
 
         $token = Str::random(60);
         $uuid = (string) Str::uuid();
+
+        DB::table('email_verification_tokens')
+            ->where('email', $request->user()->email)
+            ->delete();
 
         DB::table('email_verification_tokens')->insert([
             'id' => $uuid,
@@ -52,6 +55,7 @@ class EmailVerificationController extends Controller
      */
     public function sendToUser(Request $request, $id)
     {
+        abort_unless($request->user()?->can('access-admin-security'), 403);
         $user = User::findOrFail($id);
         
         if ($user->hasVerifiedEmail()) {
@@ -63,6 +67,10 @@ class EmailVerificationController extends Controller
 
         $token = Str::random(60);
         $uuid = (string) Str::uuid();
+
+        DB::table('email_verification_tokens')
+            ->where('email', $user->email)
+            ->delete();
 
         DB::table('email_verification_tokens')->insert([
             'id' => $uuid,

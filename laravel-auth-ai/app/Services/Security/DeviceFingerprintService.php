@@ -4,6 +4,7 @@ namespace App\Services\Security;
 
 use Illuminate\Http\Request;
 use Jenssegers\Agent\Agent;
+use App\Http\Middleware\DeviceIdentifierMiddleware;
 
 class DeviceFingerprintService
 {
@@ -24,29 +25,6 @@ class DeviceFingerprintService
      */
     public function getRealIp(Request $request): string
     {
-        $headers = [
-            'CF-Connecting-IP',
-            'X-Forwarded-For',
-            'X-Real-IP',
-            'Client-IP',
-            'HTTP_X_FORWARDED_FOR',
-        ];
-
-        foreach ($headers as $header) {
-            $value = $request->header($header) ?? $request->server($header);
-            
-            if (!empty($value)) {
-                $ips = explode(',', (string) $value);
-                foreach ($ips as $ip) {
-                    $ip = trim($ip);
-                    // Validasi IP dan pastikan bukan IP internal Docker jika ada pilihan lain
-                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                        return $ip;
-                    }
-                }
-            }
-        }
-
         return (string) $request->ip();
     }
 
@@ -93,29 +71,26 @@ class DeviceFingerprintService
      */
     public function generate(Request $request): string
     {
-        // Ambil ID dari cookie (Sudah dijamin ada oleh DeviceIdentifierMiddleware)
-        $deviceId = $request->cookie('device_trust_id');
-        
-        // Debug: Pantau kehadiran dan nilai cookie
-        if ($deviceId) {
-            \Illuminate\Support\Facades\Log::channel('security')->debug('Fingerprint Source: COOKIE', [
-                'device_id_tail' => '...' . substr($deviceId, -8),
-                'full_hash'      => hash('md5', $deviceId), // Hash untuk tracking aman di log
-            ]);
-        } else {
-            \Illuminate\Support\Facades\Log::channel('security')->warning('Fingerprint Source: MISSING COOKIE (FALLBACK ACTIVE)', [
-                'has_any_cookies' => count($request->cookies->all()) > 0,
-                'ua'              => $request->userAgent(),
-            ]);
-        }
+        $deviceToken = $this->getDeviceToken($request);
 
-        // Jika karena alasan ekstrem cookie benar-benar kosong, fallback ke User-Agent
-        if (!$deviceId) {
+        if (! $deviceToken) {
             $userAgent = strtolower(trim($request->userAgent() ?? 'none'));
             return hash('sha256', "legacy|{$userAgent}");
         }
 
-        return $deviceId;
+        return hash('sha256', $deviceToken);
+    }
+
+    public function getDeviceToken(Request $request): ?string
+    {
+        $token = $request->cookie(DeviceIdentifierMiddleware::COOKIE_NAME)
+            ?: $request->cookie('device_trust_id');
+
+        if (! is_string($token) || $token === '') {
+            return null;
+        }
+
+        return $token;
     }
 
     /**

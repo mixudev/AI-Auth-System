@@ -147,7 +147,14 @@ class LoginAuditService
             'risk_score'         => $result->riskScore,
             'decision'           => $result->decision,
             'reason_flags'       => $result->reasonFlags,
-            'ai_response_raw'    => array_merge((array)$result->rawResponse, ['_inputs' => $result->payload]),
+            // [M-04 FIX] Pisahkan data PII (seperti IP dan fingerprint dalam payload) 
+            // dari raw_response agar tidak terekspos di tabel audit secara berlebihan.
+            'ai_response_raw'    => [
+                'risk_score'   => $result->rawResponse['risk_score'] ?? null,
+                'decision'     => $result->rawResponse['decision'] ?? null,
+                'confidence'   => $result->rawResponse['confidence'] ?? null,
+                'is_fallback'  => $result->isFallback,
+            ],
             'status'             => $status,
             'occurred_at'        => now(),
         ]);

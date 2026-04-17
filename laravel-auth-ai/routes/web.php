@@ -1,27 +1,32 @@
 <?php
 
-use App\Http\Controllers\Web\WebAuthController;
-use App\Http\Controllers\Dev\DevMonitoringController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TimezoneController;
 use App\Http\Controllers\Web\EmailVerificationController;
+use App\Http\Controllers\Web\WebAuthController;
+use Illuminate\Support\Facades\Route;
 
 
 Route::get('/', fn() => redirect()->route('login'));
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [WebAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [WebAuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [WebAuthController::class, 'login'])
+        ->middleware('pre.auth.ratelimit')
+        ->name('login.post');
     Route::get('/auth/mfa/verify', [WebAuthController::class, 'showMfaVerify'])->name('auth.mfa.verify');
     Route::post('/auth/mfa/verify', [WebAuthController::class, 'verifyMfa'])
-        ->middleware('throttle:5,1')
+        ->middleware('throttle:mfa')
         ->name('auth.mfa.verify.post');
 
     // Forgot Password
     Route::get('/forgot-password', [WebAuthController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('/forgot-password', [WebAuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [WebAuthController::class, 'sendResetLink'])
+        ->middleware('pre.auth.ratelimit')
+        ->name('password.email');
     Route::get('/reset-password/{token}', [WebAuthController::class, 'showResetPassword'])->name('password.reset');
-    Route::post('/reset-password', [WebAuthController::class, 'resetPassword'])->name('password.update');
+    Route::post('/reset-password', [WebAuthController::class, 'resetPassword'])
+        ->middleware('pre.auth.ratelimit')
+        ->name('password.update');
 });
 
     Route::get('/verify-email', function () {
@@ -36,17 +41,15 @@ Route::middleware('guest')->group(function () {
     ->name('verification.verified')
     ->middleware('signed'); // hanya bisa diakses dengan URL signed
 
-Route::middleware('auth')->group(function () {
-
-    Route::resource('users', \App\Http\Controllers\Web\UserController::class);
-    
+Route::middleware(['auth', 'ensure.session.version', 'verify.fingerprint'])->group(function () {
     Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
     Route::post('/email/verification-notification', [\App\Http\Controllers\Web\EmailVerificationController::class, 'send'])
-        ->middleware('throttle:3,1')
+        ->middleware('throttle:verification-send')
         ->name('verification.send');
 
     Route::post('/email/verification-notification/{id}', [\App\Http\Controllers\Web\EmailVerificationController::class, 'sendToUser'])
+        ->middleware(['permission:users.edit', 'throttle:verification-send'])
         ->name('verification.send.admin');
 
 });
@@ -63,6 +66,7 @@ Route::patch('/timezone/update', [TimezoneController::class, 'update'])
 
 
 use App\Mail\TestMail;
+use Illuminate\Support\Facades\Mail;
 
 Route::get('/test-email', function () {
 
@@ -85,7 +89,13 @@ Mail::to('Hello@gmail.com')->send(new TestMail(
 });
 
 
-// panggil route scurity (dev monitoring)
-require __DIR__.'/scurity.php';
 require __DIR__.'/dashboard.php';
-require __DIR__.'/email-test.php';
+require __DIR__.'/security.php';
+
+// [H-03 FIX] Route development hanya dimuat di environment yang bukan production.
+// Mencegah bocornya dev-tools jika APP_ENV lupa diubah.
+if (app()->environment(['local', 'development', 'testing'])) {
+    require __DIR__.'/dev.php';
+    require __DIR__.'/email-test.php';
+}
+

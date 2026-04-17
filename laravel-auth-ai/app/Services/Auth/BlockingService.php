@@ -257,12 +257,14 @@ class BlockingService
     {
         $userKey = "block_count:user:{$userId}";
         $ipKey   = "block_count:ip:{$ip}";
+        $ttl     = now()->addHours(24);
 
+        // [M-03 FIX] Menggunakan add() agar atomic set jika belum ada (setara SETNX di Redis)
+        Cache::add($userKey, 0, $ttl);
         Cache::increment($userKey);
-        Cache::put($userKey, Cache::get($userKey, 1), now()->addHours(24));
 
+        Cache::add($ipKey, 0, $ttl);
         Cache::increment($ipKey);
-        Cache::put($ipKey, Cache::get($ipKey, 1), now()->addHours(24));
     }
 
     private function maybeAutoLockUser(int $userId): void

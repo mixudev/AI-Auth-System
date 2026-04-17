@@ -5,7 +5,7 @@ namespace Tests\Feature\Auth;
 use App\DTOs\RiskAssessmentResult;
 use App\Models\OtpVerification;
 use App\Models\User;
-use App\Services\AiRiskClientService;
+use App\Services\Security\AiRiskClientService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -47,7 +47,7 @@ class OtpVerificationTest extends TestCase
         $this->assertNotEmpty($sessionToken);
 
         // Step 2: Ambil kode OTP dari database (simulasi)
-        $otpRecord = OtpVerification::where('session_token', $sessionToken)->first();
+        $otpRecord = OtpVerification::where('session_token_hash', hash('sha256', $sessionToken))->first();
         $this->assertNotNull($otpRecord);
 
         // Karena kode di-hash, kita perlu inject kode yang diketahui
@@ -55,9 +55,9 @@ class OtpVerificationTest extends TestCase
         $otpRecord->update(['token' => Hash::make($knownCode)]);
 
         // Step 3: Verifikasi OTP
-        $verifyResponse = $this->postJson('/api/auth/otp/verify', [
+        $verifyResponse = $this->postJson('/api/auth/mfa/verify', [
             'session_token' => $sessionToken,
-            'otp_code'      => $knownCode,
+            'code'          => $knownCode,
         ]);
 
         $verifyResponse->assertOk()
@@ -74,15 +74,15 @@ class OtpVerificationTest extends TestCase
         OtpVerification::create([
             'user_id'       => $user->id,
             'token'         => Hash::make('654321'),
-            'session_token' => str_repeat('a', 64),
+            'session_token_hash' => hash('sha256', str_repeat('a', 64)),
             'ip_address'    => '127.0.0.1',
             'expires_at'    => now()->addMinutes(5),
             'attempts'      => 0,
         ]);
 
-        $response = $this->postJson('/api/auth/otp/verify', [
+        $response = $this->postJson('/api/auth/mfa/verify', [
             'session_token' => str_repeat('a', 64),
-            'otp_code'      => '000000',
+            'code'          => '000000',
         ]);
 
         $response->assertUnprocessable()
@@ -99,18 +99,19 @@ class OtpVerificationTest extends TestCase
         OtpVerification::create([
             'user_id'       => $user->id,
             'token'         => Hash::make('123456'),
-            'session_token' => str_repeat('b', 64),
+            'session_token_hash' => hash('sha256', str_repeat('b', 64)),
             'ip_address'    => '127.0.0.1',
             'expires_at'    => now()->subMinutes(1), // Sudah kedaluwarsa
             'attempts'      => 0,
         ]);
 
-        $response = $this->postJson('/api/auth/otp/verify', [
+        $response = $this->postJson('/api/auth/mfa/verify', [
             'session_token' => str_repeat('b', 64),
-            'otp_code'      => '123456',
+            'code'          => '123456',
         ]);
 
-        $response->assertStatus(410) // HTTP 410 Gone
-                 ->assertJson(['error_code' => 'EXPIRED']);
+        // Expired token is treated as invalid code/session for clients (anti-enumeration).
+        $response->assertUnprocessable()
+                 ->assertJson(['error_code' => 'INVALID_CODE']);
     }
 }

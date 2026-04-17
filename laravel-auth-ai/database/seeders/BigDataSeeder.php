@@ -407,7 +407,7 @@ class BigDataSeeder extends Seeder
             $chunk[] = [
                 'user_id'            => $this->userIdSample[mt_rand(0, $uidCount - 1)],
                 'token'              => $token,
-                'session_token'      => bin2hex(random_bytes(16)),
+                'session_token_hash' => hash('sha256', bin2hex(random_bytes(16))),
                 'ip_address'         => $this->ips[mt_rand(0, $ipCount - 1)],
                 'device_fingerprint' => mt_rand(0,9) < 8
                                             ? $this->fingerprints[mt_rand(0, $fpCount - 1)]

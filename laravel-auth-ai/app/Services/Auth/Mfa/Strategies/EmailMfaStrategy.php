@@ -16,12 +16,12 @@ class EmailMfaStrategy implements MfaStrategyInterface
         private readonly DeviceFingerprintService $fingerprintService
     ) {}
 
-    public function generate(User $user, Request $request): array
+    public function generate(User $user, Request $request, ?int $logId = null): array
     {
         $ip = $this->fingerprintService->getRealIp($request);
         $fingerprint = $this->fingerprintService->getDeviceSignature($request);
 
-        $otpData = $this->otpService->generateOtp($user, $ip, $fingerprint);
+        $otpData = $this->otpService->generateOtp($user, $ip, $fingerprint, $logId);
 
         // Kirim notifikasi email
         $user->notify(new \App\Notifications\OtpCodeNotification($otpData['otp_code']));

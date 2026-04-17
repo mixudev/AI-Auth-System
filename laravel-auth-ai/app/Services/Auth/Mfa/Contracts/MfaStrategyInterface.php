@@ -12,7 +12,7 @@ interface MfaStrategyInterface
      *
      * @return array{session_token: string, message: string}
      */
-    public function generate(User $user, Request $request): array;
+    public function generate(User $user, Request $request, ?int $logId = null): array;
 
     /**
      * Verifikasi kode yang dimasukkan user.

@@ -6,7 +6,10 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class BlockUserRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return $this->user()?->can('access-admin-security') ?? false;
+    }
 
     public function rules(): array
     {

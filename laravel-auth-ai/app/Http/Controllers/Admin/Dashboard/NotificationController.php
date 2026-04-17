@@ -21,7 +21,7 @@ class NotificationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = SecurityNotification::unread();
+        $query = $this->scopedQuery($request)->whereNull('read_at');
         
         $notifications = $query->latest()
             ->limit(10)
@@ -44,7 +44,7 @@ class NotificationController extends Controller
      */
     public function all(Request $request): View
     {
-        $query = SecurityNotification::latest();
+        $query = $this->scopedQuery($request)->latest();
 
         // Filter: notification type
         if ($request->filled('type')) {
@@ -96,7 +96,13 @@ class NotificationController extends Controller
      */
     public function markAsRead(): JsonResponse
     {
-        $updated = SecurityNotification::whereNull('read_at')
+        $query = SecurityNotification::query();
+
+        if (! request()->user()->can('access-admin-security')) {
+            $query->where('user_id', request()->user()->id);
+        }
+
+        $updated = $query->whereNull('read_at')
             ->update(['read_at' => now()]);
 
         return response()->json([
@@ -110,6 +116,7 @@ class NotificationController extends Controller
      */
     public function markOneRead(SecurityNotification $notification): JsonResponse
     {
+        $this->authorize('update', $notification);
         $notification->markAsRead();
 
         return response()->json(['success' => true]);
@@ -120,8 +127,18 @@ class NotificationController extends Controller
      */
     public function delete(SecurityNotification $notification): JsonResponse
     {
+        $this->authorize('delete', $notification);
         $notification->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    private function scopedQuery(Request $request)
+    {
+        return SecurityNotification::query()
+            ->when(
+                ! $request->user()->can('access-admin-security'),
+                fn ($query) => $query->where('user_id', $request->user()->id)
+            );
     }
 }

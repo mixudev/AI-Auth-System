@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Dashboard;
 
+use App\Application\Auth\AuthFlowService;
 use App\Http\Controllers\Controller;
 use App\Models\LoginLog;
 use App\Models\TrustedDevice;
@@ -10,7 +11,6 @@ use App\Services\TimezoneService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
@@ -18,7 +18,8 @@ class ProfileController extends Controller
     private const ALLOWED_PANELS = ['profile', 'security', 'preferences', 'devices', 'activity'];
 
     public function __construct(
-        private readonly TimezoneService $timezoneService
+        private readonly TimezoneService $timezoneService,
+        private readonly AuthFlowService $authFlowService,
     ) {}
 
     // -----------------------------------------------------------------------
@@ -68,7 +69,7 @@ class ProfileController extends Controller
             ],
             'devices' => [
                 'devices'            => TrustedDevice::where('user_id', Auth::id())->orderByDesc('last_seen_at')->get(),
-                'currentFingerprint' => $request->cookie('device_id'),
+                'currentFingerprint' => $request->cookie(\App\Http\Middleware\DeviceIdentifierMiddleware::COOKIE_NAME),
             ],
             'activity' => [
                 'logs' => LoginLog::where('user_id', Auth::id())
@@ -121,6 +122,8 @@ class ProfileController extends Controller
         ]);
 
         $user->update(['password' => Hash::make($validated['password'])]);
+        $this->authFlowService->revokeUserSessions($user, $request->session()->getId());
+        $request->session()->put('auth_session_version', (int) $user->fresh()->session_version);
 
         return back()->with('success', 'Kata sandi berhasil diubah.');
     }
@@ -155,9 +158,7 @@ class ProfileController extends Controller
 
     public function revokeDevice(Request $request, TrustedDevice $device)
     {
-        if ($device->user_id !== Auth::id()) {
-            abort(403);
-        }
+        $this->authorize('revoke', $device);
 
         $device->revoke();
 
@@ -267,11 +268,8 @@ class ProfileController extends Controller
     {
         /** @var User $user */
         $user     = Auth::user();
-        $response = Http::withHeaders(['Accept' => 'application/json'])
-            ->asForm()
-            ->post('http://nginx/api/auth/forgot-password', ['email' => $user->email]);
-
-        $message = $response->json()['message'] ?? 'Permintaan reset telah dikirim ke email Anda.';
+        $result = $this->authFlowService->sendResetLink(request(), $user->email);
+        $message = $result['message'] ?? 'Permintaan reset telah dikirim ke email Anda.';
 
         return back()->with('success', $message);
     }

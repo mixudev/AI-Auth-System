@@ -29,6 +29,17 @@ class OtpService
         $config     = config('security.otp');
         $otpLength  = (int) ($config['length'] ?? 6);
         $expiresMins = (int) ($config['expires_minutes'] ?? 5);
+        $cooldownSeconds = (int) ($config['cooldown_seconds'] ?? 60);
+
+        $existing = OtpVerification::where('user_id', $user->id)
+            ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->first();
+
+        if ($existing && $existing->created_at && $existing->created_at->diffInSeconds(now()) < $cooldownSeconds) {
+            throw new \RuntimeException('Terlalu sering meminta OTP. Silakan tunggu sebentar.');
+        }
 
         // Batalkan semua OTP aktif sebelumnya milik pengguna ini
         $this->invalidatePreviousOtps($user->id);
@@ -36,11 +47,12 @@ class OtpService
         // Hasilkan kode OTP numerik acak yang kuat secara kriptografis
         $otpCode      = $this->generateSecureNumericCode($otpLength);
         $sessionToken = Str::random(64);
+        $sessionTokenHash = hash('sha256', $sessionToken);
 
         OtpVerification::create([
             'user_id'            => $user->id,
             'token'              => Hash::make($otpCode), // Simpan hash, bukan kode asli
-            'session_token'      => $sessionToken,
+            'session_token_hash' => $sessionTokenHash,
             'ip_address'         => $ipAddress,
             'device_fingerprint' => $deviceFingerprint,
             'expires_at'         => now()->addMinutes($expiresMins),
@@ -70,7 +82,9 @@ class OtpService
      */
     public function verifyOtp(string $sessionToken, string $submittedCode): array
     {
-        $otpRecord = OtpVerification::where('session_token', $sessionToken)
+        $sessionTokenHash = hash('sha256', $sessionToken);
+
+        $otpRecord = OtpVerification::where('session_token_hash', $sessionTokenHash)
             ->whereNull('verified_at')
             ->first();
 

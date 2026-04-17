@@ -21,6 +21,14 @@ return new class extends Migration
             $table->string('email', 255)->unique();
             $table->timestamp('email_verified_at')->nullable();
 
+            // Profile / preferences
+            $table->string('timezone', 50)
+                ->default('UTC')
+                ->comment('Timezone IANA user, contoh: Asia/Jakarta, Asia/Makassar, Asia/Jayapura');
+            $table->string('avatar')->nullable();
+            $table->string('otp_preference')->default('system')
+                ->comment('always, system, disabled');
+
             // Password di-hash menggunakan Argon2id
             // Panjang 255 cukup untuk semua format hash modern
             $table->string('password', 255);
@@ -28,8 +36,18 @@ return new class extends Migration
             $table->boolean('is_active')->default(true)->index();
             $table->timestamp('last_login_at')->nullable();
             $table->ipAddress('last_login_ip')->nullable();
+            $table->string('last_login_country', 3)->nullable();
+            $table->string('last_login_ua', 512)->nullable();
+            $table->string('last_login_device', 128)->nullable();
+
+            // MFA settings
+            $table->boolean('mfa_enabled')->default(false);
+            $table->string('mfa_type')->default('email')->comment('email, totp');
+            $table->text('totp_secret')->nullable()->comment('Encrypted TOTP secret');
+            $table->text('backup_codes')->nullable()->comment('Encrypted JSON backup codes');
 
             $table->rememberToken();
+            $table->unsignedBigInteger('session_version')->default(0);
             $table->timestamps();
             $table->softDeletes(); // Akun yang dihapus tidak langsung hilang dari database
         });

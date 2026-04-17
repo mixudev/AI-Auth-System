@@ -18,7 +18,7 @@ class OtpVerificationFactory extends Factory
         return [
             'user_id'            => null,
             'token'              => Hash::make((string) fake()->numberBetween(100000, 999999)),
-            'session_token'      => fake()->unique()->sha256(),
+            'session_token_hash' => fake()->unique()->sha256(),
             'ip_address'         => fake()->ipv4(),
             'device_fingerprint' => fake()->optional(0.8)->sha256(),
             'expires_at'         => $isExpired

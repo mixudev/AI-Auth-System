@@ -26,7 +26,7 @@ Route::prefix('auth')->name('auth.')->group(function () {
 
     // Verifikasi MFA (dipanggil setelah keputusan MFA dari sistem)
     Route::post('/mfa/verify', [AuthController::class, 'verifyMfa'])
-        ->middleware(PreAuthRateLimitMiddleware::class)
+        ->middleware(['throttle:mfa'])
         ->name('mfa.verify');
 
     // Password Reset API
@@ -44,11 +44,11 @@ Route::prefix('auth')->name('auth.')->group(function () {
 
 // -- Route yang memerlukan autentikasi
 Route::prefix('auth')->name('auth.')->middleware([
-    'auth:sanctum',
+    'auth',
+    'ensure.session.version',
     VerifySessionFingerprintMiddleware::class,
 ])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])
         ->name('logout');
 });
-

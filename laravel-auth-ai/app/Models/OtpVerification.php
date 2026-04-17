@@ -17,7 +17,7 @@ class OtpVerification extends Model
     protected $fillable = [
         'user_id',
         'token',            // Hash dari kode OTP, bukan kode mentah
-        'session_token',    // Token sesi pending yang menunggu verifikasi OTP
+        'session_token_hash',    // Hash token sesi pending yang menunggu verifikasi OTP
         'expires_at',
         'attempts',
         'verified_at',

@@ -43,9 +43,9 @@ class MfaManager
     /**
      * Jalankan inisialisasi MFA (generate code/session).
      */
-    public function initiate(User $user, Request $request): array
+    public function initiate(User $user, Request $request, ?int $logId = null): array
     {
-        return $this->getStrategyForUser($user)->generate($user, $request);
+        return $this->getStrategyForUser($user)->generate($user, $request, $logId);
     }
 
     /**

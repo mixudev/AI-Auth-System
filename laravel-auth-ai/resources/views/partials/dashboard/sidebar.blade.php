@@ -88,7 +88,7 @@
                     Access Control</p>
                 <ul class="space-y-0.5">
                     <li>
-                        <a href="#" data-page="roles" class="sidebar-link pointer-events-none opacity-50" aria-label="Roles">
+                        <a href="{{ route('dashboard.roles.index') }}" data-page="roles" class="sidebar-link {{ request()->routeIs('dashboard.roles*') ? 'active' : '' }}" aria-label="Roles">
                             <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center">
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
                                     class="w-4 h-4">
@@ -101,7 +101,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" data-page="permissions" class="sidebar-link pointer-events-none opacity-50" aria-label="Permissions">
+                        <a href="{{ route('dashboard.permissions.index') }}" data-page="permissions" class="sidebar-link {{ request()->routeIs('dashboard.permissions*') ? 'active' : '' }}" aria-label="Permissions">
                             <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center">
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
                                     class="w-4 h-4">

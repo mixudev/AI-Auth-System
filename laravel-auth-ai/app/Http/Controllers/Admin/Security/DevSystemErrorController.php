@@ -9,17 +9,13 @@ use Illuminate\Http\Request;
 
 class DevSystemErrorController extends Controller
 {
-    public function __construct()
-    {
-        // Pastikan hanya bisa diakses saat mode developer aktif
-        abort_unless(config('app.debug'), 403, 'Akses ditolak. Fitur ini hanya tersedia dalam mode developer.');
-    }
-
     /**
      * Ambil data log kesalahan sistem (Security Notifications).
      */
     public function index(Request $request): JsonResponse
     {
+        abort_unless(app()->environment(['local', 'development', 'testing']), 403, 'Akses ditolak. Fitur ini hanya tersedia dalam mode developer.');
+
         $cursor = $request->integer('cursor', 0);
         $search = $request->string('search');
 

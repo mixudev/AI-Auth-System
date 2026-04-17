@@ -60,6 +60,12 @@ class VerifySessionFingerprintMiddleware
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
+            if (! ($request->expectsJson() || $request->is('api/*'))) {
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Sesi Anda tidak valid. Silakan login kembali.',
+                ]);
+            }
+
             return response()->json([
                 'message'    => 'Sesi Anda tidak valid. Silakan login kembali.',
                 'error_code' => 'SESSION_INVALID',

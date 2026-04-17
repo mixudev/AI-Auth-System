@@ -7,7 +7,7 @@ use App\Models\OtpVerification;
 use App\Services\Auth\Mfa\Contracts\MfaStrategyInterface;
 use App\Services\Security\DeviceFingerprintService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use PragmaRX\Google2FALaravel\Facade as Google2FA;
 use Illuminate\Support\Str;
 
@@ -17,16 +17,31 @@ class TotpMfaStrategy implements MfaStrategyInterface
         private readonly DeviceFingerprintService $fingerprintService
     ) {}
 
-    public function generate(User $user, Request $request): array
+    public function generate(User $user, Request $request, ?int $logId = null): array
     {
-        // Untuk TOTP, kita tidak mengirim kode, tetapi kita buat record sesi
-        // untuk melacak percobaan verifikasi (rate limiting).
+        $existing = OtpVerification::where('user_id', $user->id)
+            ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->first();
+
+        if ($existing && $existing->created_at && $existing->created_at->diffInSeconds(now()) < (int) config('security.otp.cooldown_seconds', 60)) {
+            throw new \RuntimeException('Terlalu sering meminta verifikasi MFA. Silakan tunggu sebentar.');
+        }
+
+        // Batalkan semua sesi MFA aktif sebelumnya untuk mengurangi surface area token.
+        OtpVerification::where('user_id', $user->id)
+            ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->update(['verified_at' => now()]);
+
         $sessionToken = Str::random(64);
+        $sessionTokenHash = hash('sha256', $sessionToken);
         
         OtpVerification::create([
             'user_id'            => $user->id,
             'token'              => 'TOTP_SESSION', // Placeholder
-            'session_token'      => $sessionToken,
+            'session_token_hash' => $sessionTokenHash,
             'ip_address'         => $this->fingerprintService->getRealIp($request),
             'device_fingerprint' => $this->fingerprintService->getDeviceSignature($request),
             'expires_at'         => now()->addMinutes(10),
@@ -41,7 +56,7 @@ class TotpMfaStrategy implements MfaStrategyInterface
 
     public function verify(User $user, string $code, string $sessionToken): bool
     {
-        $otpRecord = OtpVerification::where('session_token', $sessionToken)
+        $otpRecord = OtpVerification::where('session_token_hash', hash('sha256', $sessionToken))
             ->whereNull('verified_at')
             ->first();
 
@@ -52,7 +67,9 @@ class TotpMfaStrategy implements MfaStrategyInterface
         $otpRecord->incrementAttempts();
 
         // 1. Coba verifikasi kode TOTP standar
-        $secret = Crypt::decryptString($user->totp_secret);
+        // [H-04 FIX] totp_secret sudah di-decrypt otomatis oleh Eloquent 'encrypted' cast
+        // Memanggil Crypt::decryptString() akan menyebabkan double-decryption error
+        $secret  = $user->totp_secret; // ← sudah plaintext berkat cast 'encrypted'
         $isValid = Google2FA::verifyKey($secret, $code);
 
         // 2. Jika gagal, coba verifikasi sebagai Backup Code

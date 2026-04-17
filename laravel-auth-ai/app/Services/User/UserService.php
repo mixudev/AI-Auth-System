@@ -154,7 +154,12 @@ class UserService
             ]);
 
             // Nonaktifkan user
-            $user->update(['is_active' => false]);
+            $user->forceFill([
+                'is_active' => false,
+                'session_version' => $user->session_version + 1,
+                'remember_token' => \Illuminate\Support\Str::random(60),
+            ])->save();
+            DB::table('sessions')->where('user_id', $user->id)->delete();
 
             return $block;
         });
@@ -183,6 +188,9 @@ class UserService
         DB::transaction(function () use ($user) {
             // Blokir semua sesi aktif
             $user->userBlocks()->active()->update(['unblocked_at' => now()]);
+            $user->increment('session_version');
+            $user->forceFill(['remember_token' => \Illuminate\Support\Str::random(60)])->save();
+            DB::table('sessions')->where('user_id', $user->id)->delete();
             $user->delete();
         });
     }

@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Middleware\VerifySessionFingerprintMiddleware;
+use App\Http\Middleware\EnsureSessionVersionMiddleware;
+use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\CheckPermission;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,8 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
 
         // Middleware global untuk semua request API
+        // Catatan security: API idealnya stateless. Hindari set cookie identitas perangkat di group API
+        // kecuali Anda memang sengaja membuat API stateful (SPA + cookie auth).
         $middleware->api(append: [
-            \App\Http\Middleware\DeviceIdentifierMiddleware::class,
             // Header keamanan dasar ditangani oleh reverse proxy (Nginx/Traefik)
             // Middleware tambahan dapat ditambahkan di sini sesuai kebutuhan
         ]);
@@ -35,27 +39,25 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'pre.auth.ratelimit' => \App\Http\Middleware\PreAuthRateLimitMiddleware::class,
             'verify.fingerprint' => VerifySessionFingerprintMiddleware::class,
+            'ensure.session.version' => EnsureSessionVersionMiddleware::class,
+            'role' => CheckRole::class,
+            'permission' => CheckPermission::class,
         ]);
 
         // Kecualikan route auth dari CSRF (untuk API stateless)
-        $middleware->validateCsrfTokens(except: [
-            'api/*',
-        ]);
-
         // Deteksi timezone untuk semua request web
         $middleware->web(append: [
             \App\Http\Middleware\DeviceIdentifierMiddleware::class,
             \App\Http\Middleware\TimezoneMiddleware::class,
+            \App\Http\Middleware\SecurityHeadersMiddleware::class, // [M-05 FIX]
         ]);
 
-        // Trust all proxies in Docker environment to get Real IP from Nginx
-        $middleware->trustProxies(at: '*');
+        $trustedProxies = array_values(array_filter(array_map(
+            static fn (string $proxy) => trim($proxy),
+            explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1,::1'))
+        )));
 
-        // Kecualikan cookie ID perangkat dari enkripsi agar bisa dibaca 
-        // secara konsisten di lingkungan transmisi yang berbeda.
-        $middleware->encryptCookies(except: [
-            'device_trust_id',
-        ]);
+        $middleware->trustProxies(at: $trustedProxies);
     })
     ->withExceptions(function (Exceptions $exceptions) {
 

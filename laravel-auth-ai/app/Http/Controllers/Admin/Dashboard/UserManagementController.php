@@ -17,12 +17,14 @@ class UserManagementController extends Controller
 {
     public function __construct(private readonly UserService $userService)
     {
+        $this->authorizeResource(User::class, 'user');
     }
 
     // ─── Index ─────────────────────────────────────────────────────────────────
 
     public function index(Request $request): View
     {
+        $this->authorize('manage', User::class);
         $filters = $request->only(['search', 'status', 'sort', 'per_page']);
 
         $users = $this->userService->getUsers($filters);
@@ -35,6 +37,7 @@ class UserManagementController extends Controller
 
     public function store(StoreUserRequest $request): JsonResponse
     {
+        $this->authorize('manage', User::class);
         try {
             $user = $this->userService->createUser($request->validated());
 
@@ -146,6 +149,7 @@ class UserManagementController extends Controller
 
     public function bulkAction(Request $request): JsonResponse
     {
+        $this->authorize('manage', User::class);
         $request->validate([
             'action'   => ['required', 'in:block,unblock,delete'],
             'user_ids' => ['required', 'array', 'min:1'],
