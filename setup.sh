@@ -20,6 +20,10 @@ log_info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+generate_random_string() {
+    cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w "${1:-32}" | head -n 1
+}
+
 
 echo ""
 echo "=============================================="
@@ -65,6 +69,60 @@ if [ ! -f ".env" ]; then
 fi
 
 log_success "File konfigurasi siap."
+
+# ----------------------------------------------------------
+# Konfigurasi Keamanan Otomatis
+# ----------------------------------------------------------
+log_info "Mengamankan kredensial sistem..."
+
+# Pastikan file .env ada sebelum di-sed
+[ -f ".env" ] || touch .env
+[ -f "laravel-auth-ai/.env" ] || touch laravel-auth-ai/.env
+
+# 1. REDIS_PASSWORD
+CURRENT_REDIS_PWD=$(grep "^REDIS_PASSWORD=" .env | cut -d'=' -f2-)
+if [ -z "$CURRENT_REDIS_PWD" ] || [ "$CURRENT_REDIS_PWD" = "" ]; then
+    log_info "Generating new REDIS_PASSWORD..."
+    NEW_REDIS_PWD=$(generate_random_string 32)
+    
+    # Update root .env
+    if grep -q "^REDIS_PASSWORD=" .env; then
+        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$NEW_REDIS_PWD|" .env
+    else
+        echo "REDIS_PASSWORD=$NEW_REDIS_PWD" >> .env
+    fi
+    
+    # Update Laravel .env
+    if grep -q "^REDIS_PASSWORD=" laravel-auth-ai/.env; then
+        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$NEW_REDIS_PWD|" laravel-auth-ai/.env
+    else
+        echo "REDIS_PASSWORD=$NEW_REDIS_PWD" >> laravel-auth-ai/.env
+    fi
+fi
+
+# 2. MYSQL_ROOT_PASSWORD
+CURRENT_MYSQL_ROOT=$(grep "^MYSQL_ROOT_PASSWORD=" .env | cut -d'=' -f2-)
+if [ -z "$CURRENT_MYSQL_ROOT" ] || [ "$CURRENT_MYSQL_ROOT" = "root_secure_9283_password_!" ] || [ "$CURRENT_MYSQL_ROOT" = "ZQ!8pV@r6FJxkNwD7m2C" ]; then
+    log_info "Generating new MYSQL_ROOT_PASSWORD..."
+    NEW_MYSQL_ROOT=$(generate_random_string 32)
+    sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" .env
+    
+    # Laravel .env might have it with a typo or correct name
+    sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" laravel-auth-ai/.env
+    sed -i "s|^MSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" laravel-auth-ai/.env
+fi
+
+# 3. DB_PASSWORD
+CURRENT_DB_PWD=$(grep "^DB_PASSWORD=" laravel-auth-ai/.env | cut -d'=' -f2-)
+if [ -z "$CURRENT_DB_PWD" ] || [ "$CURRENT_DB_PWD" = "secret123" ] || [ "$CURRENT_DB_PWD" = "W9sLeP7T@x4RkM!2cHf" ] || [ "$CURRENT_DB_PWD" = "app_secure_7261_password_fsaA" ]; then
+    log_info "Generating new DB_PASSWORD..."
+    NEW_DB_PWD=$(generate_random_string 32)
+    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" .env
+    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" laravel-auth-ai/.env
+fi
+
+log_success "Kredensial keamanan telah diperbarui."
+
 
 # ----------------------------------------------------------
 # Buat direktori yang diperlukan
