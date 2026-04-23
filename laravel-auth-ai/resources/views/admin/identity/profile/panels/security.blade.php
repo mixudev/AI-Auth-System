@@ -1,14 +1,5 @@
-@extends('identity::profile.layout')
-
-@section('profile-content')
 <div class="space-y-5">
 
-    @if(session('success'))
-        <div class="px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800/50 flex items-center gap-3">
-            <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
-            <p class="text-xs font-medium text-emerald-700 dark:text-emerald-400">{{ session('success') }}</p>
-        </div>
-    @endif
 
     <!-- UBAH KATA SANDI -->
     <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -60,7 +51,7 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" onclick="confirmResetSandi()"
+                    <button type="button" data-profile-action="reset-password"
                         class="h-10 px-5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold transition-all flex items-center gap-2">
                         <i class="fa-solid fa-envelope-open-text text-[10px]"></i>
                         Lupa Sandi
@@ -102,13 +93,13 @@
                 </div>
                 <div class="shrink-0">
                     @if(Auth::user()->mfa_enabled && Auth::user()->mfa_type === 'totp')
-                        <button type="button" onclick="openDisableMfaModal()"
+                        <button type="button" data-profile-action="disable-mfa"
                             class="h-10 px-5 rounded-lg border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/10 transition-all flex items-center gap-2">
                             <i class="fa-solid fa-trash-can text-[10px]"></i>
                             Matikan MFA
                         </button>
                     @else
-                        <button type="button" onclick="startMfaSetup()"
+                        <button type="button" data-profile-action="setup-mfa"
                             class="h-10 px-5 rounded-lg bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-semibold transition-all shadow-sm flex items-center gap-2">
                             <i class="fa-solid fa-plus text-[10px]"></i>
                             Siapkan Aplikasi
@@ -120,4 +111,3 @@
     </div>
 
 </div>
-@endsection

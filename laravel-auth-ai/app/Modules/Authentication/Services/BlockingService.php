@@ -7,6 +7,7 @@ use App\Modules\Security\Models\IpWhitelist;
 use App\Modules\Security\Models\LoginLog;
 use App\Modules\Security\Models\TrustedDevice;
 use App\Modules\Identity\Models\UserBlock;
+use App\Modules\WaGateway\Services\WaAlertService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -131,6 +132,13 @@ class BlockingService
             'by'            => $by,
         ]);
 
+        // ── WA Alert (async, non-blocking) ────────────────────────────────
+        try {
+            app(WaAlertService::class)->alertIpBlocked($ip, $reason, $by);
+        } catch (\Throwable $e) {
+            Log::warning('[WaAlert] alertIpBlocked failed', ['error' => $e->getMessage()]);
+        }
+
         return $record;
     }
 
@@ -203,6 +211,14 @@ class BlockingService
             'blocked_until' => $blockedUntil,
             'by'            => $by,
         ]);
+
+        // ── WA Alert (async, non-blocking) ────────────────────────────────
+        try {
+            $email = \App\Models\User::find($userId)?->email ?? "User#$userId";
+            app(WaAlertService::class)->alertUserBlocked($email, $userId, $reason, $by);
+        } catch (\Throwable $e) {
+            Log::warning('[WaAlert] alertUserBlocked failed', ['error' => $e->getMessage()]);
+        }
 
         return $block;
     }

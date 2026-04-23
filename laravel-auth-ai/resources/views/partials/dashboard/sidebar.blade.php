@@ -6,25 +6,24 @@
         <div class="border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
             <div id="sidebar-logo-area" class="flex items-center gap-3">
                 <div
-                    class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-violet-500/30">
-                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
+                    class="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                    {{-- jika tema gelap pakai logo ini --}}
+                    <img src="{{ asset('assets/icon/logo-2.png') }}" alt="Logo" class="w-8 h-8 dark:block hidden">
+                    {{-- jika tema terang pakai logo ini --}}
+                    <img src="{{ asset('assets/icon/logo-3.png') }}" alt="Logo" class="w-8 h-8 dark:hidden">
                 </div>
                 <div id="logo-text" class="overflow-hidden">
                     <div
                         class="text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                         MixuAuth</div>
                     <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                        Identity Platform</div>
+                        Secure Auth</div>
                 </div>
             </div>
         </div>
 
         <!-- Nav -->
-        <nav class="flex-1 py-4 overflow-y-auto space-y-5 px-3" id="sidebarNav">
+        <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden space-y-5 px-3" id="sidebarNav">
             <div>
                 <p
                     class="sidebar-section-title px-3 mb-1.5 text-[10px] font-mono font-medium uppercase tracking-widest text-slate-400">
@@ -100,7 +99,7 @@
                             <span class="sidebar-tooltip">Roles</span>
                         </a>
                     </li>
-                    <li>
+                    <li> 
                         <a href="{{ route('dashboard.permissions.index') }}" data-page="permissions" class="sidebar-link {{ request()->routeIs('dashboard.permissions*') ? 'active' : '' }}" aria-label="Permissions">
                             <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center">
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
@@ -213,6 +212,26 @@
                     </li>
                 </ul>
             </div>
+
+            {{-- Integration Section for Super Admins --}}
+            @if(auth()->check() && auth()->user()->hasRole('super-admin'))
+            <div>
+                <p class="sidebar-section-title px-3 mb-1.5 text-[10px] font-mono font-medium uppercase tracking-widest text-slate-400">
+                    Integration</p>
+                <ul class="space-y-0.5">
+                    <li>
+                        <a href="{{ route('wa-gateway.config.index') }}" data-page="wa-gateway" class="sidebar-link {{ request()->routeIs('wa-gateway.*') ? 'active' : '' }}" aria-label="WhatsApp Gateway">
+                            <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center text-emerald-500">
+                                <i class="fa-brands fa-whatsapp" style="font-size: 16px;"></i>
+                            </span>
+                            <span class="sidebar-label">WhatsApp Gateway</span>
+                            <span class="sidebar-tooltip">WhatsApp Gateway</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endif
+
             <div>
                 <p
                     class="sidebar-section-title px-3 mb-1.5 text-[10px] font-mono font-medium uppercase tracking-widest text-slate-400">

@@ -1,6 +1,3 @@
-@extends('identity::profile.layout')
-
-@section('profile-content')
 <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
     <div class="px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20 flex items-center justify-between">
         <div>
@@ -97,4 +94,3 @@
         @endforelse
     </div>
 </div>
-@endsection

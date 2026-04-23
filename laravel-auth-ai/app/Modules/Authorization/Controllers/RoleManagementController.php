@@ -35,7 +35,9 @@ class RoleManagementController extends Controller
             'custom' => Role::whereNotIn('slug', ['super-admin', 'admin', 'user', 'security-officer'])->count(),
         ];
 
-        return view('authorization::role.index', compact('roles', 'stats', 'filters'));
+        $allPermissions = Permission::all()->groupBy('group');
+
+        return view('authorization::role.index', compact('roles', 'stats', 'filters', 'allPermissions'));
     }
 
     // ─── Create Modal ───────────────────────────────────────────────────────────

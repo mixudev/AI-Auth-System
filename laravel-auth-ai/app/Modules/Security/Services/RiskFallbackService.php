@@ -68,10 +68,11 @@ class RiskFallbackService implements RiskAssessorInterface
         }
 
         // -- Sinyal: Skor risiko IP
-        $ipRiskScore = (int) ($riskPayload['ip_risk_score'] ?? 0);
-        if ($ipRiskScore > 0) {
-            $score       += (int) ($ipRiskScore * $weights['ip_risk_multiplier']);
-            if ($ipRiskScore > 50) {
+        $ipRiskScoreNormalized = (float) ($riskPayload['ip_risk_score'] ?? 0.0);
+        $ipRiskScorePercent = (int) round($ipRiskScoreNormalized * 100);
+        if ($ipRiskScorePercent > 0) {
+            $score       += (int) round($ipRiskScorePercent * $weights['ip_risk_multiplier']);
+            if ($ipRiskScorePercent > 50) {
                 $reasonFlags[] = 'high_risk_ip';
             }
         }

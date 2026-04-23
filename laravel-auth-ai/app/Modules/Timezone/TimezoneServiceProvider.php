@@ -82,7 +82,7 @@ class TimezoneServiceProvider extends ServiceProvider
             return "<script>
                 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 if (tz && tz !== '" . app(TimezoneService::class)->getUserTimezone() . "') {
-                    fetch('/api/v1/timezone/set', {
+                    fetch('/timezone/set', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                         body: JSON.stringify({ timezone: tz })

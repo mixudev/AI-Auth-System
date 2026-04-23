@@ -44,74 +44,67 @@
 {{-- ============================================================
      STATS CARDS
      ============================================================ --}}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+
     {{-- Total --}}
-    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-5 overflow-hidden group hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
-        <div class="absolute inset-0 bg-gradient-to-br from-slate-50 to-transparent dark:from-slate-800/30 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        <div class="relative">
-            <div class="flex items-center justify-between mb-3">
-                <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em]">Total</p>
-                <div class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                    <svg class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                    </svg>
-                </div>
+    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total</p>
+            <div class="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                </svg>
             </div>
-            <p class="text-2xl font-black text-slate-800 dark:text-slate-100 tabular-nums">{{ number_format($stats['total']) }}</p>
-            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">semua notifikasi</p>
         </div>
+        <p class="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums leading-none">{{ number_format($stats['total']) }}</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">semua notifikasi</p>
     </div>
 
     {{-- Unread --}}
-    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-5 overflow-hidden group hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-colors">
-        <div class="absolute top-0 left-0 right-0 h-0.5 bg-indigo-500 rounded-t-2xl"></div>
-        <div class="relative">
-            <div class="flex items-center justify-between mb-3">
-                <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.1em]">Belum Dibaca</p>
-                <div class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-                    <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                    </svg>
-                </div>
+    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 overflow-hidden group hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-colors">
+        <div class="absolute top-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-t-xl"></div>
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest">Belum Dibaca</p>
+            <div class="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
+                <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
             </div>
-            <p class="text-2xl font-black text-indigo-600 dark:text-indigo-400 tabular-nums">{{ number_format($stats['unread']) }}</p>
-            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">perlu ditinjau</p>
         </div>
+        <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 tabular-nums leading-none">{{ number_format($stats['unread']) }}</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">perlu ditinjau</p>
     </div>
 
     {{-- Warning --}}
-    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-5 overflow-hidden group hover:border-amber-300 dark:hover:border-amber-500/40 transition-colors">
-        <div class="absolute top-0 left-0 right-0 h-0.5 bg-amber-500 rounded-t-2xl"></div>
-        <div class="relative">
-            <div class="flex items-center justify-between mb-3">
-                <p class="text-[10px] font-bold text-amber-500 uppercase tracking-[0.1em]">Warning</p>
-                <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-                    <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                </div>
+    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 overflow-hidden group hover:border-amber-200 dark:hover:border-amber-500/30 transition-colors">
+        <div class="absolute top-0 left-0 right-0 h-[2px] bg-amber-500 rounded-t-xl"></div>
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-[10px] font-semibold text-amber-500 uppercase tracking-widest">Warning</p>
+            <div class="w-6 h-6 rounded-md bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                <svg class="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
             </div>
-            <p class="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums">{{ number_format($stats['warning']) }}</p>
-            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">peringatan aktif</p>
         </div>
+        <p class="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums leading-none">{{ number_format($stats['warning']) }}</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">peringatan aktif</p>
     </div>
 
-    {{-- Success / Resolved (Optional replacement for some Error slot or extra slot) --}}
-    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-5 overflow-hidden group hover:border-emerald-300 dark:hover:border-emerald-500/40 transition-colors">
-        <div class="absolute top-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-2xl"></div>
-        <div class="relative">
-            <div class="flex items-center justify-between mb-3">
-                <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.1em]">Success / Info</p>
-                <div class="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-                    <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
+    {{-- Resolved --}}
+    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 overflow-hidden group hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-colors">
+        <div class="absolute top-0 left-0 right-0 h-[2px] bg-emerald-500 rounded-t-xl"></div>
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-[10px] font-semibold text-emerald-500 uppercase tracking-widest">Selesai</p>
+            <div class="w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
             </div>
-            <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{{ number_format($stats['total'] - $stats['unread']) }}</p>
-            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">sudah diselesaikan</p>
         </div>
+        <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums leading-none">{{ number_format($stats['total'] - $stats['unread']) }}</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">sudah diselesaikan</p>
     </div>
+
 </div>
 
 {{-- ============================================================

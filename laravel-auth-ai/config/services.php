@@ -43,4 +43,8 @@ return [
         'verify_url' => env('CAPTCHA_VERIFY_URL', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'),
     ],
 
+    // [C-01 FIX] Mailtrap configuration for local testing
+    'mailtrap' => [
+        'api_key' => env('MAILTRAP_API_KEY'),
+    ],
 ];

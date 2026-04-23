@@ -16,18 +16,17 @@ class GeoIpService
     {
         // Jangan lakukan lookup untuk IP lokal/private
         if ($this->isPrivateIp($ip)) {
-            return 'ID'; // Default atau penanda lokal
+            return 'ZZ'; // Unknown/Private network
         }
 
         return Cache::remember("geoip:v2:{$ip}", now()->addHours(24), function () use ($ip) {
             try {
-                // Gunakan ip-api.com (tanpa API key untuk demo/free tier)
-                // Timeout singkat agar tidak menghambat login jika API lambat
+                // Gunakan provider HTTPS untuk menghindari manipulasi traffic.
                 $response = Http::timeout(3)
-                    ->get("http://ip-api.com/json/{$ip}?fields=status,message,countryCode");
+                    ->get("https://ipwho.is/{$ip}");
 
-                if ($response->successful() && $response->json('status') === 'success') {
-                    return (string) $response->json('countryCode');
+                if ($response->successful() && $response->json('success') === true) {
+                    return (string) $response->json('country_code');
                 }
 
                 Log::channel('security')->warning('GeoIP Lookup gagal atau IP tidak ditemukan', [
@@ -43,7 +42,7 @@ class GeoIpService
                 ]);
             }
 
-            return 'ID'; // Fallback aman (asumsi pasar utama Indonesia atau sesuaikan)
+            return 'ZZ'; // Unknown country
         });
     }
 

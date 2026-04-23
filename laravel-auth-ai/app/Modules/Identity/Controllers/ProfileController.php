@@ -46,16 +46,23 @@ class ProfileController extends Controller
             $panel = 'profile';
         }
 
-        $data = $this->getPanelData($panel, $request);
-        $view = "identity::profile.panels.{$panel}";
-
         if ($this->isPanelRequest($request)) {
-            // Mengembalikan hanya HTML konten panel (tanpa full layout)
-            return response(view($view, $data)->renderSections()['profile-content'] ?? '', 200)
+            $data = $this->getPanelData($panel, $request);
+            $view = "identity::profile.panels.{$panel}";
+            return response(view($view, $data)->render(), 200)
                 ->header('Content-Type', 'text/html; charset=utf-8');
         }
 
-        return view($view, $data);
+        // Full page request: Load data for ALL panels to support instant switching
+        $allData = [
+            'timezones'          => $this->timezoneService->allTimezones(),
+            'devices'            => TrustedDevice::where('user_id', Auth::id())->orderByDesc('last_seen_at')->get(),
+            'currentFingerprint' => $request->cookie(\App\Modules\Security\Middleware\DeviceIdentifierMiddleware::COOKIE_NAME),
+            'logs'               => LoginLog::where('user_id', Auth::id())->orderBy('occurred_at', 'desc')->paginate(15),
+            'currentPanel'       => $panel,
+        ];
+
+        return view('identity::profile.index', $allData);
     }
 
     /**
@@ -223,7 +230,8 @@ class ProfileController extends Controller
         $user->update([
             'mfa_enabled'  => true,
             'mfa_type'     => 'totp',
-            'totp_secret'  => \Illuminate\Support\Facades\Crypt::encryptString($secret),
+            // Gunakan cast "encrypted" di model agar tidak terjadi double-encryption.
+            'totp_secret'  => $secret,
             'backup_codes' => $backupCodes,
         ]);
 

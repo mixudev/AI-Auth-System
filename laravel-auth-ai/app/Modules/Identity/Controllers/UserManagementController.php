@@ -29,8 +29,9 @@ class UserManagementController extends Controller
 
         $users = $this->userService->getUsers($filters);
         $stats = $this->userService->getSummaryStats();
+        $roles = \App\Modules\Authorization\Models\Role::all();
 
-        return view('identity::users.index', compact('users', 'stats', 'filters'));
+        return view('identity::users.index', compact('users', 'stats', 'filters', 'roles'));
     }
 
     // ─── Store ─────────────────────────────────────────────────────────────────
@@ -203,7 +204,7 @@ class UserManagementController extends Controller
 
     private function formatUser(User $user): array
     {
-        $user->loadMissing('activeBlock', 'userBlocks');
+        $user->loadMissing('activeBlock', 'userBlocks', 'roles');
 
         return [
             'id'               => $user->id,
@@ -215,9 +216,13 @@ class UserManagementController extends Controller
             'block_reason'     => $user->activeBlock?->reason,
             'blocked_until'    => $user->activeBlock?->blocked_until?->toIso8601String(),
             'email_verified'   => !is_null($user->email_verified_at),
+            'email_verified_at' => $user->email_verified_at?->toIso8601String(),
             'last_login_at'    => $user->last_login_at?->toIso8601String(),
             'last_login_ip'    => $user->last_login_ip,
             'created_at'       => $user->created_at?->toIso8601String(),
+            'roles'            => $user->roles->map(fn($r) => ['id' => $r->id, 'name' => $r->name, 'slug' => $r->slug]),
+            'mfa_enabled'      => $user->mfa_enabled,
+            'mfa_type'         => $user->mfa_type,
         ];
     }
 }

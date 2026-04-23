@@ -1,146 +1,78 @@
-# Panduan Instalasi Sistem
+﻿# Panduan Instalasi
 
-Panduan standar ini menjelaskan tahapan implementasi infrastruktur AI Auth System dari tahap inisiasi (*scratch*) menggunakan mekanisme orstrasi *Docker Container*.
+Panduan ini untuk menyiapkan sistem dari nol sampai aplikasi bisa diakses.
 
-## Syarat Pratinjau Lingkungan Dasar
+## Prasyarat
 
-Pastikan mesin inang (Server Host) spesifikasinya memenuhi dan memiliki layanan pra-syarat berikut:
+| Komponen | Versi Minimum |
+|---|---|
+| Docker Engine | 20.10+ |
+| Docker Compose Plugin | 2.0+ |
+| Git | 2.x |
 
-| Infrastruktur Dependensi | Spesifikasi Minimum | Tautan Unduhan |
-|------|--------------|------|
-| Docker Engine | 20.10+ | [Dokumentasi Docker](https://docs.docker.com/get-docker/) |
-| Docker Compose plugin | 2.0+ | Terpaket bersama Engine/Desktop |
-| Git Version Control | 2.x | [Unduhan Git](https://git-scm.com/downloads) |
+Cek cepat:
 
-Pengujian verifikasi lingkungan standar:
 ```bash
-docker --version          # Mengharapkan Docker version 24.x.x
-docker compose version    # Mengharapkan Docker Compose version v2.x.x
-git --version             # Mengharapkan git version 2.x.x
+docker --version
+docker compose version
+git --version
 ```
 
-## Tahapan 1: Ekstraksi Repositori Inti
+## Langkah Instalasi
 
-Lakukan penduplikatan source code dari penyedia VCS:
+### 1) Clone repository
 
 ```bash
-git clone https://github.com/referensi-perusahaan/ai-auth-system.git
-cd ai-auth-system
+git clone <repo-url>
+cd AI-AUTH-02
 ```
 
-## Tahapan 2: Penetapan Variabel Lingkungan Rahasia
-
-Templat bawaan environment akan digandakan secara otomatis saat melakukan eksekusi otomasi `setup.sh`. Namun, administrator **diwajibkan untuk meninjau dan mensuplai konfigurasi manual SMTP/Email relay** guna menstabilkan fitur pengiriman OTP.
-
-Lakukan penyalinan inisiasi lokal:
+### 2) Siapkan file environment
 
 ```bash
-# Penggandaan templat
 cp .env.example .env
 cp laravel-auth-ai/.env.example laravel-auth-ai/.env
 cp ai-security/.env.example ai-security/.env
 ```
 
-Penyuntingan kredensial SMTP (*Harap modifikasi `laravel-auth-ai/.env` secara aman*):
+### 3) Isi konfigurasi wajib
 
-```ini
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailgun.org
-MAIL_PORT=587
-MAIL_USERNAME=noreply@domain-anda.com
-MAIL_PASSWORD=secret_app_password
-MAIL_FROM_ADDRESS=noreply@domain-anda.com
-MAIL_FROM_NAME="Portal Akses AI System"
-```
+Minimal isi:
 
-> **Perhatian Khusus Konfigurasi Celah Transaksi**
-> Kegagalan injeksi otentikasi SMTP yang tervalidasi akan memecah fungsi antrean prioritas dan mengakibakan paralisis fungsional OTP.
+- `laravel-auth-ai/.env`: SMTP, `AI_RISK_API_KEY`, captcha (jika mode captcha dipakai)
+- `ai-security/.env`: API key yang sama dengan Laravel
 
-## Tahapan 3: Proses Orstrasi dan Persiapan (*Bootstrapping*)
-
-Skrip pengelola tingkat eksekutif (.`setup.sh`) berfungsi mengabaikan rutinitas berulang pembangunan *stack*.
+### 4) Jalankan stack
 
 ```bash
-chmod +x setup.sh
-./setup.sh
+docker compose up -d --build
 ```
 
-Manifest operasional otomatis yang dijalankan skrip:
-1. Validasi proksimitas jaringan eksternal dan kapabilitas Daemon Docker.
-2. Inisiasi acak **kredensial entropi keamanan tinggi** untuk layanan (REDIS_PASSWORD, MYSQL_ROOT_PASSWORD, DB_PASSWORD).
-3. Evaluasi pemetaan Tree Directory dan *Log Dumps*.
-4. Kompilasi mandiri seluruh citra *Docker image* berlapis (Stage Builder).
-5. Inisiasi persistensi RDBMS & memori Redis dalam kontainer parsial.
-6. Penarikan dependensi pustaka via Composer tanpa konflik dependensi lintas OS.
-7. Produksi kriptografi `APP_KEY` untuk enkripsi data sisi klien.
-8. Sinkronisasi persistensi struktur skema (*Database Migrations*).
-9. Pengoptimalan perutean aplikasi.
-10. Validasi kesehatan (Health-check) servis pasca-eksekusi.
-
-Estimasi temporal proses: **3–10 menit** (Metrik durasi bergantung kepada latensi bandwidth dan performa komputasi Thread mesin inang).
-
-## Tahapan 4: Pemantauan Alamat Gerbang Aplikasi
-
-Sistem beroperasi tanpa gangguan ketika tabel layanan terekspos pada rute terminal lokal (Host):
-
-| Komponen Terisolasi | Tautan Gerbang Resolusi |
-|---------|-----|
-| Antarmuka Laravel App | http://localhost:8080 |
-| Koneksi Langsung Laravel API | http://localhost:8080/api |
-| Pemeriksaan Kesahatan FastAPI | http://localhost:8000/health |
-| Konsol Manajerial SQL | http://localhost:8081 |
-| **Arsip Dokumentasi Luring** | http://localhost:8090 |
-
-## Operasi Diagnosis Reguler
-
-Manajemen pemantauan logs dan siklus komputasi per *container*:
+### 5) Verifikasi service
 
 ```bash
-# Evaluasi status runtime layanan
 docker compose ps
-
-# Audit logs dari terminal aplikasi PHP 
-docker compose logs -f app
-
-# Audit rekam jejak performa mesin FastAPI
-docker compose logs -f fastapi-risk
-
-# Memulai ulang siklus satu layanan spasial
-docker compose restart app
-
-# Pemusnahan container stack teragregasi
-docker compose down
-
-# *Purge* infrastruktur absolut (termasuk penyimpanan presisten)
-docker compose down -v
 ```
 
-## Troubleshooting
+Semua service utama harus status `Up` / `healthy` (jika healthcheck aktif).
 
-### Port sudah digunakan
+## Endpoint Lokal Default
 
-```bash
-# Cek proses yang menggunakan port
-netstat -tulpn | grep 8080
+| Service | URL |
+|---|---|
+| Web Laravel (via Nginx) | http://localhost:8080 |
+| API Laravel | http://localhost:8080/api |
+| FastAPI Health | http://localhost:8000/health |
+| phpMyAdmin | http://localhost:8081 |
+| Docs VitePress | http://localhost:8090 |
 
-# Ganti port di docker-compose.yml jika konflik
-```
+## Verifikasi Pasca Instalasi
 
-### Container gagal start
+1. Buka halaman login web.
+2. Uji endpoint health FastAPI.
+3. Jalankan login test dengan kredensial valid.
+4. Pastikan log app tidak menampilkan error fatal.
 
-```bash
-# Lihat error detail
-docker compose logs app
-docker compose logs db
+## Jika Setup Gagal
 
-# Build ulang dari scratch
-docker compose build --no-cache
-docker compose up -d
-```
-
-### Reset database
-
-```bash
-docker compose down -v   # Hapus volume
-./setup.sh               # Setup ulang dari awal
-```
+Gunakan halaman [Troubleshooting](/guide/troubleshooting) untuk langkah recovery cepat.

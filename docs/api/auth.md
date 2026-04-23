@@ -1,110 +1,146 @@
-# Spesifikasi Endpoint (Authentication Module)
+﻿# Authentication API
 
-Modul otentikasi memfasilitasi penerbitan sesi izin terotorisasi (`Bearer`). Pengamanan divalidasi oleh subsistem **FastAPI Risk Endpoint** untuk memastikan tidak terjadinya infiltrasi berbahaya.
+Berikut endpoint API pada modul autentikasi (`app/Modules/Authentication/routes/api.php`).
 
----
+## Public Endpoints
 
-## 1. Permintaan Hak Masuk (Login)
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| POST | `/api/auth/login` | Login dengan evaluasi risiko |
+| POST | `/api/auth/mfa/verify` | Verifikasi MFA setelah challenge |
+| POST | `/api/auth/forgot-password` | Kirim link reset password |
+| POST | `/api/auth/reset-password` | Submit password baru |
+| GET | `/api/auth/reset-password/validate` | Validasi token reset |
 
-Inokulasi pertukaran _credentials_ pengguna untuk peluncuran otorisasi API Token.
+## Protected Endpoints
 
-**Alamat Relatif:** `POST /api/auth/login`
+| Method | Endpoint | Middleware |
+|---|---|---|
+| POST | `/api/auth/logout` | `auth:sanctum`, session guards |
 
-### Atribut Payload Permintaan (JSON)
+## POST /api/auth/login
 
-| Label | Tipe Data | Sifat | Penjabaran Logika |
-|-------|-----------|-------|------------|
-| `email` | String | Wajib | Kredensial surat elektronik dengan format tervalidasi. |
-| `password` | String | Wajib | Frasa sandi statis. |
-| `device_name` | String | Opsional | Informasi perangkat klien untuk keperluan manajemen *Multiple Devices* (default: `unknown`). |
-
-### Skenario Balasan 1: Sukses Terverifikasi (200 OK)
-
-Balasan yang timbul apabila skor anomali AI di bawah taraf menengah (*Low Risk*) serta kredensial cocok pada pangkalan data SQL.
+### Request
 
 ```json
 {
-  "success": true,
-  "data": {
-    "token": "1|sOMeV3ryS3cur3T0k3nStr1ng...",
-    "user": {
-      "id": 1,
-      "email": "admin@domain.com",
-      "role": "admin"
-    },
-    "requires_mfa": false
-  },
-  "message": "Login berhasil diregistrasi oleh subsistem otorisasi."
+  "email": "user@example.com",
+  "password": "secret",
+  "remember": false,
+  "captcha_token": "optional-token-when-required"
 }
 ```
 
-### Skenario Balasan 2: Pemblokiran Pintu Berlapis (Membutuhkan MFA)
-
-Jika skor algoritma FastAPI memberikan nilai `Medium Risk` hingga `High Risk`, klien dipaksa untuk lolos fase *Challenge* via OTP.
+### Response (authenticated)
 
 ```json
 {
-  "success": true,
-  "data": {
-    "requires_mfa": true,
-    "mfa_token": "temp_token_5828a2..."
-  },
-  "message": "Deteksi aktivitas tidak lumrah. Otentikasi lapis kedua (Multi-Factor) sedang dikirimkan."
+  "message": "Login berhasil.",
+  "user": {
+    "id": 1,
+    "name": "User",
+    "email": "user@example.com"
+  }
 }
 ```
 
----
-
-## 2. Proses Otorisasi MFA (Mutli-Factor Validation)
-
-Mengesahkan _challenge-token_ OTP bila status relasi sebelumnya mewajibkan (`requires_mfa: true`). 
-
-**Alamat Relatif:** `POST /api/auth/mfa/verify`
-
-### Atribut Payload Permintaan (JSON)
-
-| Label | Tipe Data | Sifat | Penjabaran Logika |
-|-------|-----------|-------|------------|
-| `mfa_token` | String | Wajib | Deret karakter sementara (yang diperoleh dari `/login` pada Skenario 2). |
-| `otp` | String | Wajib | Nilai numerik 6-digit validasi. |
-
-### Contoh Pemanggilan via cURL
-
-```bash
-curl -X POST http://localhost:8080/api/auth/mfa/verify \
-  -H "Content-Type: application/json" \
-  -d '{"mfa_token": "temp_token...", "otp": "481516"}'
-```
-
-### Format Respon Kesepakatan (200 OK)
+### Response (requires MFA)
 
 ```json
 {
-  "success": true,
-  "data": {
-    "token": "2|an0th3rV3ryS3cur3T0k3n..."
-  },
-  "message": "Token MFA lolos evaluasi matematis. Sesi diizinkan."
+  "message": "Verifikasi lanjutan diperlukan.",
+  "requires_mfa": true,
+  "session_token": "64-char-token",
+  "expires_in": 300,
+  "mfa_type": "email"
 }
 ```
 
----
-
-## 3. Pemutusan Siklus Sesi (Logout)
-
-Pembatalan fungsi *Bearer Token* di lingkungan jaringan internal (baik RAM/Redis maupun MySQL Record) dengan pendekatan *Force Invalidation*.
-
-**Alamat Relatif:** `POST /api/auth/logout`
-
-**Persyaratan Infrastruktur Header:**
-- `Authorization`: `Bearer <token>`
-
-### Format Balasan Terminasi (200 OK)
+### Response (captcha required)
 
 ```json
 {
-  "success": true,
-  "message": "Sesi telah dieliminasi sepenuhnya dari ekosistem.",
-  "data": null
+  "message": "Verifikasi Keamanan diperlukan.",
+  "error_code": "CAPTCHA_REQUIRED",
+  "requires_captcha": true
+}
+```
+
+## POST /api/auth/mfa/verify
+
+### Request
+
+```json
+{
+  "session_token": "64-char-token",
+  "code": "123456"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Verifikasi berhasil.",
+  "user": {
+    "id": 1,
+    "email": "user@example.com"
+  }
+}
+```
+
+## POST /api/auth/forgot-password
+
+### Request
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Jika email terdaftar, link reset telah dikirim."
+}
+```
+
+## POST /api/auth/reset-password
+
+### Request
+
+```json
+{
+  "email": "user@example.com",
+  "token": "reset-token",
+  "password": "StrongPassword#2026",
+  "password_confirmation": "StrongPassword#2026"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Password berhasil diperbarui."
+}
+```
+
+## POST /api/auth/logout
+
+Header:
+
+```http
+Authorization: Bearer <token>
+Accept: application/json
+```
+
+Response:
+
+```json
+{
+  "message": "Anda berhasil keluar dari sistem."
 }
 ```

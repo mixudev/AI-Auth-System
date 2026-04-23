@@ -17,7 +17,7 @@
                 placeholder="Cari IP atau alasan...">
         </form>
 
-        <button onclick="document.getElementById('addBlacklistModal').classList.remove('hidden')" 
+        <button onclick="AppModal.open('addBlacklistModal')" 
             class="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-all shadow-md shadow-indigo-500/10">
             <i class="fa-solid fa-plus text-[10px]"></i>
             Tambah IP Blacklist
@@ -91,52 +91,43 @@
 </div>
 
 <!-- Add Modal -->
-<div id="addBlacklistModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="document.getElementById('addBlacklistModal').classList.add('hidden')"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200 dark:border-slate-800">
-            <form action="{{ route('admin.security.blacklist.store') }}" method="POST">
-                @csrf
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Tambah IP Blacklist</h3>
-                    <button type="button" onclick="document.getElementById('addBlacklistModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-500">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">IP Address</label>
-                        <input type="text" name="ip_address" required 
-                            class="block w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all dark:text-white"
-                            placeholder="e.g. 192.168.1.1">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Alasan Pempensiunan</label>
-                        <textarea name="reason" rows="3" 
-                            class="block w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all dark:text-white"
-                            placeholder="Jelaskan mengapa IP ini diblokir..."></textarea>
-                    </div>
-                </div>
-                <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
-                    <button type="button" onclick="document.getElementById('addBlacklistModal').classList.add('hidden')" 
-                        class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-all">
-                        Blokir IP
-                    </button>
-                </div>
-            </form>
+<x-app-modal id="addBlacklistModal" maxWidth="lg" title="Tambah IP Blacklist" description="Cekal alamat IP tertentu agar tidak dapat mengakses seluruh layanan sistem." icon="<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636'/></svg>" iconColor="red">
+    <form action="{{ route('admin.security.blacklist.store') }}" method="POST" id="addBlacklistForm">
+        @csrf
+        <div class="space-y-4 pt-1">
+            <div>
+                <label>IP Address</label>
+                <input type="text" name="ip_address" required placeholder="e.g. 192.168.1.1" class="font-mono">
+            </div>
+            <div>
+                <label>Alasan Pempensiunan</label>
+                <textarea name="reason" rows="3" placeholder="Jelaskan mengapa IP ini diblokir..."></textarea>
+            </div>
         </div>
-    </div>
-</div>
+    </form>
+
+    <x-slot name="footer">
+        <button type="button" onclick="AppModal.close('addBlacklistModal')" class="modal-btn-cancel">
+            Batal
+        </button>
+        <button type="submit" form="addBlacklistForm" class="modal-btn-danger">
+            Blokir IP
+        </button>
+    </x-slot>
+</x-app-modal>
 
 <script>
     function confirmDelete(id, ip) {
-        if(confirm(`Apakah Anda yakin ingin menghapus IP ${ip} dari daftar Blacklist?`)) {
-            document.getElementById(`delete-form-${id}`).submit();
-        }
+        AppPopup.confirm({
+            title: 'Hapus Blacklist',
+            description: `Apakah Anda yakin ingin menghapus IP <b>${ip}</b> dari daftar Blacklist? IP ini akan mendapatkan akses kembali ke sistem.`,
+            confirmText: 'Ya, Hapus',
+            cancelText: 'Batal',
+            type: 'warning',
+            onConfirm: () => {
+                document.getElementById(`delete-form-${id}`).submit();
+            }
+        });
     }
 </script>
 @endsection

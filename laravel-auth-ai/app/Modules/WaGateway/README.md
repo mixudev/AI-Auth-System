@@ -1,0 +1,386 @@
+# WhatsApp Gateway Module (WA Gateway)
+
+Modul lengkap untuk integrasi WhatsApp gateway menggunakan Fonte.com. Sistem ini memungkinkan pengiriman pesan WhatsApp dan notifikasi alert otomatis untuk event keamanan kritis.
+
+## ?? Fitur Utama
+
+- ? **Konfigurasi Multi-Gateway** - Kelola multiple WhatsApp gateway
+- ? **API Integration** - Integrasi lengkap dengan Fonte API
+- ? **Alert Otomatis** - Auto-send critical security alerts ke WA
+- ? **Log Management** - Tracking lengkap untuk setiap pesan
+- ? **Dashboard** - UI untuk manage konfigurasi dan lihat logs
+- ? **Test Connection** - Fitur test untuk validasi konfigurasi
+- ? **Pengiriman Massal** - Support untuk mengirim ke multiple numbers
+
+## ?? Cara Menggunakan
+
+### 1. Setup Awal
+
+#### Buat Akun Fonte (Pertama Kali)
+
+1. Buka https://fonnte.com
+2. Daftar akun baru
+3. Connect WhatsApp Business Account Anda
+4. Get API Token dari Dashboard: https://dashboard.fonnte.com
+
+#### Migrasi Database
+
+```bash
+php artisan migrate
+```
+
+Ini akan membuat 2 tabel:
+- `wa_gateway_configs` - Menyimpan konfigurasi gateway
+- `wa_gateway_logs` - Menyimpan log pengiriman pesan
+
+### 2. Konfigurasi di Dashboard
+
+Akses dashboard admin:
+```
+http://localhost/dashboard/wa-gateway
+```
+
+#### Create Configuration
+
+1. Klik "Add Configuration"
+2. Isi form:
+   - **Configuration Name**: Nama untuk identifikasi (e.g., "Main Alert")
+   - **Fontte API Token**: Token dari dashboard Fonte
+   - **Alert Recipient Phone Number**: Nomor tujuan alert (e.g., 628123456789)
+   - **Send Critical Alerts**: Enable untuk auto-send alert
+
+3. Klik "Create Configuration"
+
+#### Test Connection
+
+Setelah membuat config, klik tombol "Test" untuk memastikan koneksi bekerja.
+
+### 3. Integrasi Otomatis dengan System
+
+#### Alert Critical Otomatis
+
+Ketika ada event keamanan KRITIS di sistem, otomatis dikirim ke WA:
+
+**Event yang trigger automatic alert:**
+- `suspicious_login_detected` - Login mencurigakan detected
+- `multiple_failed_login_attempts` - Multiple gagal login
+- `ip_blacklist_triggered` - IP di blacklist
+- `unauthorized_access_attempt` - Akses tidak authorized
+- `session_hijacking_detected` - Session hijacking terdeteksi
+- `brute_force_attempt` - Brute force attempt
+- `location_anomaly_detected` - Lokasi aneh terdeteksi
+- `device_mismatch_detected` - Device tidak cocok
+- `unusual_activity` - Aktivitas tidak biasa
+- Dan event critical lainnya
+
+#### Format Alert Message
+
+Alert yang dikirim memiliki format:
+
+```
+?? *ALERT KRITIS - Application Name*
+??????????????????????
+?? Event: suspicious_login_detected
+? Waktu: 2026-04-22 18:30:45
+?? Pesan: Suspicious login dari IP 192.168.1.100
+
+?? Detail:
+  • user_id: 5
+  • ip_address: 192.168.1.100
+  • event_type: suspicious_login_detected
+
+??????????????????????
+?? Periksa dashboard untuk informasi lebih detail.
+```
+
+### 4. Penggunaan Manual (Di Code)
+
+#### Send Simple Message
+
+```php
+use App\Modules\WaGateway\Services\WaAlertService;
+
+$alertService = app(WaAlertService::class);
+
+// Kirim alert manual
+$alertService->sendCriticalAlert(
+    eventType: "custom_event",
+    message: "Custom alert message",
+    metadata: [
+        "user_id" => 1,
+        "custom_field" => "value"
+    ]
+);
+```
+
+#### Send via Service
+
+```php
+use App\Modules\WaGateway\Models\WaGatewayConfig;
+use App\Modules\WaGateway\Services\WaGatewayService;
+
+// Ambil config
+$config = WaGatewayConfig::where('is_active', true)->first();
+
+if ($config) {
+    $service = new WaGatewayService($config);
+    
+    // Kirim pesan
+    $response = $service->sendMessage(
+        target: "628123456789",
+        message: "Hello from WhatsApp!",
+        options: [
+            'typing' => true,  // Show typing indicator
+            'delay' => '2-5',  // Random delay 2-5 seconds
+        ]
+    );
+    
+    // Check response
+    if ($response['status']) {
+        echo "Message sent with ID: " . $response['id'][0];
+    }
+}
+```
+
+#### Send dengan Attachment
+
+```php
+$service->sendWithAttachment(
+    target: "628123456789",
+    message: "Check this image",
+    url: "https://example.com/image.jpg",
+    filename: "screenshot.jpg"
+);
+```
+
+#### Send Bulk Messages
+
+```php
+$targets = [
+    "628123456789",
+    "628987654321",
+    "6281234567890"
+];
+
+$results = $service->sendBulkMessages(
+    targets: $targets,
+    message: "Broadcast message",
+    options: ['delay' => '5']  // Delay 5 seconds between each
+);
+```
+
+## ?? Database Schema
+
+### wa_gateway_configs Table
+
+```sql
+- id (PK)
+- user_id (FK -> users)
+- name (string)
+- token (text, encrypted)
+- alert_phone_number (string)
+- send_on_critical_alert (boolean)
+- is_active (boolean)
+- webhook_url (string, nullable)
+- meta (json, nullable)
+- created_at
+- updated_at
+```
+
+### wa_gateway_logs Table
+
+```sql
+- id (PK)
+- wa_gateway_config_id (FK)
+- target_number (string)
+- message (longText)
+- status (enum: pending, success, failed)
+- response_id (string, nullable)
+- response_data (json, nullable)
+- error_message (text, nullable)
+- sent_at (timestamp)
+- created_at
+- updated_at
+```
+
+## ?? Configuration Options
+
+### Available Send Options
+
+Saat memanggil `sendMessage()`, tersedia opsi:
+
+```php
+$options = [
+    'url' => 'https://example.com/file.pdf',  // Attachment URL
+    'filename' => 'document.pdf',              // Custom filename
+    'schedule' => 1735430360,                  // Unix timestamp untuk scheduled send
+    'delay' => '5',                            // Single delay
+    'delay' => '5-10',                         // Random delay 5-10 seconds
+    'countryCode' => '62',                     // Country code (default: 62)
+    'location' => '-7.983908, 112.621391',    // Kirim location
+    'typing' => true,                          // Show typing indicator
+    'choices' => 'yes,no,maybe',              // Poll choices
+    'select' => 'single',                      // Poll type (single/multiple)
+    'pollname' => 'my_poll',                  // Poll name
+    'sequence' => true,                        // Send sequentially
+    'preview' => false,                        // Disable link preview
+];
+```
+
+## ?? Routes
+
+### Web Routes (Dashboard)
+
+```
+GET    /dashboard/wa-gateway              - List configs
+GET    /dashboard/wa-gateway/create       - Create form
+POST   /dashboard/wa-gateway              - Store config
+GET    /dashboard/wa-gateway/{config}     - View config details
+GET    /dashboard/wa-gateway/{config}/edit - Edit form
+PUT    /dashboard/wa-gateway/{config}     - Update config
+DELETE /dashboard/wa-gateway/{config}     - Delete config
+POST   /dashboard/wa-gateway/{config}/toggle - Toggle active/inactive
+POST   /dashboard/wa-gateway/{config}/test   - Test connection
+GET    /dashboard/wa-gateway/{config}/logs   - Get logs (JSON)
+```
+
+## ?? Security
+
+- Token disimpan encrypted di database
+- Semua gateway access behind authentication middleware
+- Role-based access control (super-admin, admin, security-officer)
+- Permission checking untuk setiap action
+- Log audit untuk semua pengiriman pesan
+
+## ?? Troubleshooting
+
+### Test Connection Gagal
+
+1. Pastikan token Fonte valid dan active
+2. Check network connectivity ke https://api.fonnte.com
+3. Lihat di Laravel logs (`storage/logs/`) untuk error detail
+4. Pastikan nomor tujuan format benar (dengan country code)
+
+### Alert Tidak Terkirim
+
+1. Check di `wa_gateway_logs` table apakah ada log
+2. Pastikan config dengan `send_on_critical_alert=true` dan `is_active=true`
+3. Lihat di `wa_gateway_logs` table untuk status dan error message
+4. Check application logs untuk error detail
+
+### Message Terkirim Tapi Status Pending
+
+Ini normal jika:
+- Device WhatsApp belum online saat itu
+- Message dalam antrian
+- Status akan update ke "success" setelah delivered
+
+## ?? Fonte API Documentation
+
+Untuk informasi lengkap tentang Fonte API:
+- https://docs.fonnte.com/
+- https://docs.fonnte.com/api-send-message/
+
+## ?? Support
+
+Untuk bantuan:
+1. Check logs di `storage/logs/laravel.log`
+2. Review `wa_gateway_logs` table untuk message history
+3. Test manual di Fonte Dashboard
+4. Check documentation di https://docs.fonnte.com/
+
+## ?? Module Structure
+
+```
+WaGateway/
++-- Controllers/
+¦   +-- WaGatewayConfigController.php
++-- Models/
+¦   +-- WaGatewayConfig.php
+¦   +-- WaGatewayLog.php
++-- Services/
+¦   +-- WaGatewayService.php
+¦   +-- WaAlertService.php
++-- Observers/
+¦   +-- SecurityNotificationObserver.php
++-- Requests/
+¦   +-- StoreWaGatewayConfigRequest.php
++-- migrations/
+¦   +-- 2024_04_22_000001_create_wa_gateway_configs_table.php
+¦   +-- 2024_04_22_000002_create_wa_gateway_logs_table.php
++-- routes/
+¦   +-- web.php
++-- WaGatewayServiceProvider.php
++-- README.md
+```
+
+## ?? Contoh Implementasi Lengkap
+
+```php
+<?php
+
+namespace App\Jobs;
+
+use App\Modules\WaGateway\Services\WaGatewayService;
+use App\Modules\WaGateway\Models\WaGatewayConfig;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class SendCustomWaAlert implements ShouldQueue
+{
+    use Queueable;
+
+    public function __construct(
+        protected string $title,
+        protected string $message,
+        protected array $metadata = []
+    ) {}
+
+    public function handle(): void
+    {
+        // Ambil config yang active
+        $config = WaGatewayConfig::where('is_active', true)->first();
+
+        if (!$config) {
+            return;
+        }
+
+        // Buat service
+        $service = new WaGatewayService($config);
+
+        // Format pesan
+        $formatted = "?? *{$this->title}*\n";
+        $formatted .= "???????????????\n";
+        $formatted .= $this->message . "\n";
+
+        if (!empty($this->metadata)) {
+            $formatted .= "\n?? Detail:\n";
+            foreach ($this->metadata as $key => $value) {
+                $formatted .= "• {$key}: {$value}\n";
+            }
+        }
+
+        // Kirim
+        $service->sendMessage(
+            target: $config->alert_phone_number,
+            message: $formatted
+        );
+    }
+}
+```
+
+Gunakan:
+```php
+SendCustomWaAlert::dispatch(
+    title: "System Maintenance",
+    message: "System akan maintenance jam 22:00 WIB",
+    metadata: [
+        "Duration" => "1 hour",
+        "Impact" => "All users"
+    ]
+);
+```
+
+---
+
+? Modul WA Gateway siap digunakan!

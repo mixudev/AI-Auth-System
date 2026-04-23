@@ -31,6 +31,12 @@ require app_path('Modules/Identity/routes/web.php');
 // ── Dashboard Module Routes ──────────────────────────────────────────────
 require app_path('Modules/Dashboard/routes/web.php');
 
+// ── Authorization Module Routes ──────────────────────────────────────────
+require app_path('Modules/Authorization/routes/web.php');
+
+// ── Wa Gateway Module Routes ───────────────────────────────────────────────
+require app_path('Modules/WaGateway/routes/web.php');
+
 // Feature Modules (sudah dimodularisasi)
 
 // ── Development Routes (non-production only) ─────────────────────────────

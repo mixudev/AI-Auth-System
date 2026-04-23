@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use App\Modules\Security\Services\GeoIpService;
 use App\Modules\Security\Services\DeviceFingerprintService;
+use App\Modules\WhatsAppGateway\Jobs\SendWhatsAppNotification;
 
 class PreAuthRateLimitMiddleware
 {
@@ -42,48 +43,103 @@ class PreAuthRateLimitMiddleware
         $captchaAfter  = (int) ($config['captcha_after'] ?? 3);
         $challengeType = $config['challenge'] ?? 'captcha';
         $ipMaxAttempts = (int) ($config['ip_max_attempts'] ?? 20);
+        $hardLimit     = (int) ($config['hard_limit'] ?? 10);
+        $maxCaptchaErr = (int) ($config['max_captcha_errors'] ?? 5);
+        $isCaptchaConfigured = $this->isCaptchaConfigured();
+        $captchaDebugLog = (bool) ($config['captcha_debug_log'] ?? false);
 
         $ip      = $this->fingerprintService->getRealIp($request);
         $context = $this->determineContext($request);
+
+        Log::channel('security')->debug('[RateLimit] Handled request', [
+            'ip'            => $ip,
+            'challengeType' => $challengeType,
+            'context'       => $context,
+        ]);
+
+        if ($captchaDebugLog) {
+            Log::channel('security')->info('[Captcha] Runtime mode status', [
+                'mode'             => $challengeType,
+                'is_configured'    => $isCaptchaConfigured,
+                'site_key_present' => (string) config('services.captcha.site_key', '') !== '',
+                'secret_present'   => (string) config('services.captcha.secret', '') !== '',
+                'verify_url'       => (string) config('services.captcha.verify_url', ''),
+            ]);
+        }
 
         // ── Layer 1: Rate limit per-IP (global, semua email) ─────────────────
         $ipOnlyKey = "ratelimit:ip:{$context}:" . sha1($ip);
         if ($this->limiter->tooManyAttempts($ipOnlyKey, $ipMaxAttempts)) {
             $waitSeconds = $this->limiter->availableIn($ipOnlyKey);
-
-            Log::channel('security')->warning('Rate limit IP global terlampaui', [
-                'ip_address'  => $ip,
-                'context'     => $context,
-                'retry_after' => $waitSeconds,
-            ]);
-
+            Log::channel('security')->info('[RateLimit] Block Layer 1 (IP)', ['ip' => $ip]);
+            
+            // Kirim Alert WA (Layer 1)
+            $this->notifySecurityAlert($request, 'Global IP Block (Layer 1)', $context);
+            
             return $this->buildThrottleResponse($request, $waitSeconds, 'global_ip');
         }
 
         // ── Layer 2: Rate limit per-email + IP (spesifik) ────────────────────
         $key = $this->buildRateLimitKey($request, $context);
-        if ($this->limiter->tooManyAttempts($key, $maxAttempts)) {
+        $isTooMany = $this->limiter->tooManyAttempts($key, $maxAttempts);
+
+        Log::channel('security')->debug('[RateLimit] Check Layer 2', [
+            'isTooMany' => $isTooMany,
+            'attempts'  => $this->limiter->attempts($key),
+        ]);
+
+        // Jika mode throttle, langsung blokir keras jika melebihi maxAttempts
+        if ($isTooMany && $challengeType === 'throttle') {
             $waitSeconds = $this->limiter->availableIn($key);
-
-            Log::channel('security')->warning('Rate limit ' . $context . ' (email+IP) terlampaui', [
-                'ip_address'      => $ip,
-                'email_attempted' => $request->input('email'),
-                'context'         => $context,
-                'retry_after'     => $waitSeconds,
-            ]);
-
+            Log::channel('security')->info('[RateLimit] Block Layer 2 (Throttle Mode)', ['key' => $key]);
             return $this->buildThrottleResponse($request, $waitSeconds, $context);
+        }
+
+        // Lapis 3: Hard Limit (Absolute Block) - Mencegah brute-force persisten meski pakai captcha
+        if ($this->limiter->tooManyAttempts($key, $hardLimit)) {
+            $waitSeconds = $this->limiter->availableIn($key);
+            Log::channel('security')->info('[RateLimit] Block Layer 3 (Hard Limit)', ['key' => $key]);
+            
+            // Kirim Alert WA (Layer 3)
+            $this->notifySecurityAlert($request, 'Hard Limit Reached (Layer 3)', $context);
+
+            return $this->buildThrottleResponse($request, $waitSeconds, 'hard_limit');
         }
 
         // ── [H-07] Backend CAPTCHA Enforcement ───────────────────────────────
         $captchaRequiredKey = "captcha_required:{$key}";
-        if ($challengeType === 'captcha' && Cache::has($captchaRequiredKey)) {
+        $captchaFailKey     = "captcha_failures:{$key}";
+
+        if ($challengeType === 'captcha' && (Cache::has($captchaRequiredKey) || $isTooMany)) {
+            if (! $isCaptchaConfigured) {
+                Log::channel('security')->error('[RateLimit] CAPTCHA challenge aktif tetapi konfigurasi belum lengkap.', [
+                    'site_key_present' => (string) config('services.captcha.site_key', '') !== '',
+                    'secret_present'   => (string) config('services.captcha.secret', '') !== '',
+                ]);
+
+                return $this->buildCaptchaConfigurationResponse($request);
+            }
+            
+            // Cek apakah sudah terlalu banyak gagal CAPTCHA
+            if ((int) Cache::get($captchaFailKey, 0) >= $maxCaptchaErr) {
+                Log::channel('security')->info('[RateLimit] Block (Captcha Fail Limit)', ['key' => $key]);
+                return $this->buildThrottleResponse($request, $decayMins * 60, 'captcha_fail');
+            }
+
             $captchaToken = $request->input('captcha_token');
+            Log::channel('security')->debug('[RateLimit] Verifying Captcha', ['has_token' => !empty($captchaToken)]);
+
             if (! $this->verifyCaptchaToken($captchaToken)) {
+                
+                // Catat kegagalan CAPTCHA
+                $fails = (int) Cache::get($captchaFailKey, 0) + 1;
+                Cache::put($captchaFailKey, $fails, now()->addMinutes($decayMins));
+
+                Log::channel('security')->info('[RateLimit] Captcha verification failed', ['fails' => $fails]);
 
                 if ($request->expectsJson() || $request->is('api/*')) {
                     return response()->json([
-                        'message'          => 'Verifikasi Keamanan diperlukan sebelum melanjutkan.',
+                        'message'          => 'Verifikasi Keamanan diperlukan.',
                         'error_code'       => 'CAPTCHA_REQUIRED',
                         'requires_captcha' => true,
                     ], Response::HTTP_TOO_MANY_REQUESTS);
@@ -94,8 +150,15 @@ class PreAuthRateLimitMiddleware
                     ->withErrors(['captcha_token' => 'Harap lengkapi verifikasi keamanan untuk membuktikan Anda bukan robot.'])
                     ->with('requires_captcha', true);
             }
-            // Token valid → bersihkan flag agar tidak terus menghalangi
+
+            // Token valid → bersihkan SEMUA limiter untuk key ini agar user bisa mencoba lagi dengan "bersih"
+            Log::channel('security')->info('[RateLimit] Captcha success, clearing limiters', ['key' => $key]);
             Cache::forget($captchaRequiredKey);
+            Cache::forget($captchaFailKey);
+            $this->limiter->clear($key);
+            if ($request->hasSession()) {
+                $request->session()->forget('requires_captcha');
+            }
         }
 
         // ── Catat percobaan pada kedua layer ──────────────────────────────────
@@ -110,6 +173,11 @@ class PreAuthRateLimitMiddleware
         if ($currentAttempts >= $captchaAfter && $challengeType === 'captcha') {
             Cache::put($captchaRequiredKey, true, now()->addMinutes($decayMins));
             $response->headers->set('X-Captcha-Required', 'true');
+            
+            // Simpan persisten agar UI tetap menampilkan CAPTCHA sampai lolos verifikasi.
+            if ($request->hasSession()) {
+                $request->session()->put('requires_captcha', true);
+            }
         }
 
         return $response;
@@ -127,12 +195,12 @@ class PreAuthRateLimitMiddleware
         $secret = config('services.captcha.secret');
 
         if (empty($secret)) {
-            Log::channel('security')->debug('CAPTCHA secret belum dikonfigurasi — melewati verifikasi (dev mode)');
-            return true;
+            Log::channel('security')->error('CAPTCHA secret belum dikonfigurasi');
+            return false;
         }
 
         try {
-            $verifyUrl = config('services.captcha.verify_url', 'https://hcaptcha.com/siteverify');
+            $verifyUrl = config('services.captcha.verify_url', 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
             $result    = Http::asForm()
                 ->timeout(5)
                 ->post($verifyUrl, [
@@ -146,9 +214,17 @@ class PreAuthRateLimitMiddleware
                 'error' => $e->getMessage(),
             ]);
 
-            // Fail-open pada error jaringan agar tidak memblokir user sah
-            return true;
+            // Fail-closed untuk mencegah bypass saat provider error
+            return false;
         }
+    }
+
+    private function isCaptchaConfigured(): bool
+    {
+        $siteKey = (string) config('services.captcha.site_key', '');
+        $secret  = (string) config('services.captcha.secret', '');
+
+        return $siteKey !== '' && $secret !== '';
     }
 
     /**
@@ -190,7 +266,9 @@ class PreAuthRateLimitMiddleware
         $message = match ($context) {
             'forgot_password' => "Terlalu banyak permintaan reset password. Coba lagi dalam {$retryAfterMinutes} menit.",
             'reset_password'  => "Terlalu banyak percobaan reset password. Coba lagi dalam {$retryAfterMinutes} menit.",
-            'global_ip'       => "Terlalu banyak aktivitas dari sistem Anda. Akses dibatasi sementara hingga {$retryAfterMinutes} menit.",
+            'global_ip'       => "Terlalu banyak aktivitas dari IP Anda. Akses dibatasi sementara ({$retryAfterMinutes} menit).",
+            'captcha_fail'    => "Terlalu banyak kegagalan verifikasi keamanan. Silakan coba lagi dalam {$retryAfterMinutes} menit.",
+            'hard_limit'      => "Keamanan sistem: Terlalu banyak percobaan login pada akun ini. Silakan coba lagi nanti.",
             default           => "Terlalu banyak percobaan login gagal. Coba lagi dalam {$retryAfterMinutes} menit.",
         };
 
@@ -206,10 +284,74 @@ class PreAuthRateLimitMiddleware
         }
 
         return back()
-            ->withInput($request->except('password'))
+            ->withInput($request->except('password', 'captcha_token'))
             ->withErrors(['email' => $message])
             ->withHeaders([
                 'Retry-After' => $retryAfterSeconds,
             ]);
+    }
+
+    private function buildCaptchaConfigurationResponse(Request $request): Response
+    {
+        $message = 'Mode CAPTCHA aktif, tetapi konfigurasi belum lengkap. Periksa CAPTCHA_SITE_KEY dan CAPTCHA_SECRET.';
+
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'message'          => $message,
+                'error_code'       => 'CAPTCHA_CONFIG_ERROR',
+                'requires_captcha' => true,
+                'captcha_status'   => [
+                    'mode'             => config('security.rate_limit.challenge', 'captcha'),
+                    'site_key_present' => (string) config('services.captcha.site_key', '') !== '',
+                    'secret_present'   => (string) config('services.captcha.secret', '') !== '',
+                ],
+            ], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        return back()
+            ->withInput($request->except('password', 'captcha_token'))
+            ->withErrors(['captcha_token' => $message])
+            ->with('requires_captcha', true)
+            ->with('captcha_config_error', $message);
+    }
+
+    /**
+     * Kirim notifikasi WhatsApp saat terdeteksi pelanggaran keamanan serius.
+     */
+    private function notifySecurityAlert(Request $request, string $reason, string $context): void
+    {
+        try {
+            // Mencegah spam notifikasi WA untuk IP/Key yang sama dalam jangka waktu singkat
+            $ip = $this->fingerprintService->getRealIp($request);
+            $email = $request->input('email', 'N/A');
+            $lockKey = "wa_alert_sent:" . sha1($ip . $reason);
+
+            if (Cache::has($lockKey)) {
+                return;
+            }
+
+            $time = now()->format('Y-m-d H:i:s');
+            
+            $message = "🚨 *SECURITY ALERT - MIXUAUTH* 🚨\n\n"
+                     . "Terdeteksi aktivitas mencurigakan:\n"
+                     . "--------------------------------\n"
+                     . "📍 *Reason:* {$reason}\n"
+                     . "📧 *Email:* {$email}\n"
+                     . "🌐 *IP:* {$ip}\n"
+                     . "🕒 *Waktu:* {$time}\n"
+                     . "🔄 *Context:* {$context}\n\n"
+                     . "⚠️ _Sistem telah melakukan pemblokiran sementara._";
+
+            // Dispatch job ke queue notifications-high agar terkirim cepat
+            SendWhatsAppNotification::dispatch($message)->onQueue('notifications-high');
+
+            // Kunci agar tidak kirim lagi untuk alasan yang sama dari IP yang sama selama 30 menit
+            Cache::put($lockKey, true, now()->addMinutes(30));
+            
+        } catch (\Throwable $e) {
+            Log::channel('security')->error('[WhatsApp] Failed to dispatch alert', [
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }

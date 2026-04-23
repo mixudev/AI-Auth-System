@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Services;
 
-use App\Services\RiskFallbackService;
+use App\Modules\Security\Services\RiskFallbackService;
 use Tests\TestCase;
 
 class RiskFallbackServiceTest extends TestCase

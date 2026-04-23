@@ -81,5 +81,6 @@ return Application::configure(basePath: dirname(__DIR__))
         App\Modules\Timezone\TimezoneServiceProvider::class,
         App\Modules\Common\CommonServiceProvider::class,
         App\Modules\Communication\CommunicationServiceProvider::class,
+        App\Modules\WaGateway\WaGatewayServiceProvider::class,
     ])
     ->create();

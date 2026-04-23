@@ -23,10 +23,29 @@ class CheckRole
             abort(401, 'Unauthorized');
         }
 
+        // Dukung format role lama/beragam:
+        // - role:admin,super-admin
+        // - role:admin|superadmin
+        // Sekaligus normalisasi alias slug lama "superadmin" -> "super-admin".
+        $normalizedRoles = [];
+        foreach ($roles as $roleArg) {
+            $parts = preg_split('/[|,]/', (string) $roleArg) ?: [];
+            foreach ($parts as $part) {
+                $slug = strtolower(trim($part));
+                if ($slug === '') {
+                    continue;
+                }
+                if ($slug === 'superadmin') {
+                    $slug = 'super-admin';
+                }
+                $normalizedRoles[] = $slug;
+            }
+        }
+
         // Periksa apakah user memiliki salah satu dari roles yang diminta
         $userHasRole = false;
-        foreach ($roles as $role) {
-            if ($request->user()->hasRole(trim($role))) {
+        foreach (array_unique($normalizedRoles) as $role) {
+            if ($request->user()->hasRole($role)) {
                 $userHasRole = true;
                 break;
             }

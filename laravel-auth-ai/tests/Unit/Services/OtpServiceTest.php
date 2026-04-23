@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Modules\Authentication\Models\OtpVerification;
 use App\Models\User;
-use App\Services\Auth\OtpService;
+use App\Modules\Authentication\Services\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;

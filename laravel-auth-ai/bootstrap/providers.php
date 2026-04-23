@@ -10,4 +10,6 @@ return [
     App\Modules\Authentication\AuthServiceProvider::class,
     App\Modules\Common\CommonServiceProvider::class,
     App\Modules\Timezone\TimezoneServiceProvider::class,
+    App\Modules\WaGateway\WaGatewayServiceProvider::class,
+    Laravel\Mcp\Server\McpServiceProvider::class,
 ];

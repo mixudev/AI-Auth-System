@@ -40,10 +40,13 @@ return [
     |--------------------------------------------------------------------------
     */
     'rate_limit' => [
-        'max_attempts'     => (int) env('RATE_LIMIT_MAX_ATTEMPTS', 5), // Maksimum percobaan login sebelum di-block/throttle
-        'decay_minutes'    => 15,         // Durasi lockout dalam menit
-        'challenge'        => env('RATE_LIMIT_CHALLENGE', 'captcha'), // Opsi challenge: 'captcha' | 'throttle'
-        'captcha_after'    => 3,          // Tampilkan CAPTCHA setelah N kali gagal (jika challenge=captcha)
+        'max_attempts'       => (int) env('RATE_LIMIT_MAX_ATTEMPTS', 5), // Percobaan login bebas sebelum muncul captcha (atau sebelum blokir jika challenge=throttle)
+        'decay_minutes'      => 15,         // Durasi lockout dalam menit
+        'challenge'          => env('RATE_LIMIT_CHALLENGE', 'captcha'), // Opsi challenge: 'captcha' | 'throttle'
+        'captcha_after'      => 3,          // Tampilkan CAPTCHA setelah N kali gagal (jika challenge=captcha)
+        'max_captcha_errors' => (int) env('RATE_LIMIT_MAX_CAPTCHA_ERRORS', 5), // Batas kesalahan pengisian captcha
+        'hard_limit'         => (int) env('RATE_LIMIT_HARD_LIMIT', 10),       // Batas total percobaan login (meskipun captcha benar) sebelum blokir total
+        'captcha_debug_log'  => filter_var(env('CAPTCHA_DEBUG_LOG', false), FILTER_VALIDATE_BOOL), // Log status mode captcha true/false
     ],
 
     /*

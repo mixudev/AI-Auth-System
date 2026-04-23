@@ -1,6 +1,3 @@
-@extends('identity::profile.layout')
-
-@section('profile-content')
 <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
     <div class="px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
         <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -11,13 +8,6 @@
     </div>
 
     <div class="p-8">
-        @if(session('success'))
-            <div class="mb-6 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800/50 flex items-center gap-3">
-                <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
-                <p class="text-xs font-medium text-emerald-700 dark:text-emerald-400">{{ session('success') }}</p>
-            </div>
-        @endif
-
         <form action="{{ route('dashboard.profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-7">
             @csrf
 
@@ -79,4 +69,3 @@
         </form>
     </div>
 </div>
-@endsection

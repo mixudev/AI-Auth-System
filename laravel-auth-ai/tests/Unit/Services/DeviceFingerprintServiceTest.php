@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Services;
 
-use App\Services\DeviceFingerprintService;
+use App\Modules\Security\Services\DeviceFingerprintService;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 

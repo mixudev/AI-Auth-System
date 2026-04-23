@@ -34,6 +34,7 @@ class DashboardServiceProvider extends ServiceProvider
             'authorization::*', 
             'communication::*',
             'security::*',
+            'wa-gateway::*',
             'partials.*',
             'layouts.*'
         ], function ($view) use ($statscount) {

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'ensure.session.version', 'verify.fingerprint', 'role:admin|superadmin'])->group(function () {
+Route::middleware(['auth', 'ensure.session.version', 'verify.fingerprint', 'role:admin,super-admin'])->group(function () {
     
     Route::prefix('dashboard')->group(function () {
         

@@ -103,7 +103,7 @@
     <div
         id="popup-box"
         class="relative w-full max-w-sm mx-auto overflow-hidden  pt-9 px-7 pb-7
-               bg-white border border-black/[0.06]
+               bg-gray-200 border border-black/[0.06]
                shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_20px_60px_-10px_rgba(0,0,0,0.18),0_8px_24px_-4px_rgba(0,0,0,0.08)]
                dark:bg-[#18181f] dark:border-white/[0.07]
                dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_20px_60px_-10px_rgba(0,0,0,0.7),0_8px_24px_-4px_rgba(0,0,0,0.4)]"
@@ -308,11 +308,10 @@
         btn.type = 'button';
         btn.textContent = text;
         btn.className = [
-            'flex-1 py-3 px-5  border-0 cursor-pointer',
-            'text-white text-sm font-semibold tracking-tight',
+            'flex-1 py-3 px-5 border-0 cursor-pointer',
+            'text-white text-sm font-bold tracking-tight',
             'transition-all duration-150',
-            'hover:-translate-y-px hover:shadow-lg',
-            'active:scale-[.97]',
+            'active:scale-[.98]',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
             btnClass,
         ].join(' ');
@@ -325,15 +324,15 @@
         btn.type = 'button';
         btn.textContent = text;
         btn.className = [
-            'flex-1 py-3 px-5  cursor-pointer',
-            'border border-black/10 dark:border-white/10',
-            'bg-gray-50 dark:bg-white/[0.05]',
-            'text-gray-700 dark:text-slate-400',
-            'text-sm font-medium',
+            'flex-1 py-3 px-5 cursor-pointer',
+            'border border-slate-200 dark:border-white/10',
+            'bg-slate-50 dark:bg-white/[0.05]',
+            'text-slate-600 dark:text-slate-400',
+            'text-sm font-bold',
             'transition-all duration-150',
-            'hover:bg-gray-100 dark:hover:bg-white/[0.09] hover:-translate-y-px',
-            'active:scale-[.97]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-gray-400',
+            'hover:bg-slate-100 dark:hover:bg-white/[0.09]',
+            'active:scale-[.98]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-slate-300',
         ].join(' ');
         btn.addEventListener('click', onClickFn);
         return btn;
@@ -354,6 +353,7 @@
             autoClose   = null,
             showButton  = true,
             icon        = null,
+            hideIcon    = false,
         } = opts;
 
         const cfg = CONFIGS[type] ?? CONFIGS.custom;
@@ -373,7 +373,7 @@
         $title.textContent = title;
 
         /* Description */
-        $desc.textContent = description;
+        $desc.innerHTML = description;
         $desc.classList.toggle('hidden', !description);
         $desc.classList.toggle('mb-6', !!description);
 
@@ -384,20 +384,23 @@
 
         /* Icon ring */
         $icon.innerHTML = '';
-        const ringEl = document.createElement('div');
-        ringEl.className = `popup-anim-icon relative w-[72px] h-[72px] rounded-full flex items-center justify-center ${cfg.iconBg}`;
+        $icon.classList.toggle('hidden', hideIcon);
+        if (!hideIcon) {
+            const ringEl = document.createElement('div');
+            ringEl.className = `popup-anim-icon relative w-[72px] h-[72px] rounded-full flex items-center justify-center ${cfg.iconBg}`;
 
-        const pulseEl = document.createElement('div');
-        pulseEl.className = 'popup-anim-ring absolute inset-[-6px] rounded-full border-2';
-        pulseEl.style.borderColor = cfg.ring;
-        ringEl.appendChild(pulseEl);
+            const pulseEl = document.createElement('div');
+            pulseEl.className = 'popup-anim-ring absolute inset-[-6px] rounded-full border-2';
+            pulseEl.style.borderColor = cfg.ring;
+            ringEl.appendChild(pulseEl);
 
-        const svgWrap = document.createElement('div');
-        svgWrap.className = cfg.iconColor;
-        svgWrap.innerHTML = icon ?? cfg.svg;
-        ringEl.appendChild(svgWrap);
+            const svgWrap = document.createElement('div');
+            svgWrap.className = cfg.iconColor;
+            svgWrap.innerHTML = icon ?? cfg.svg;
+            ringEl.appendChild(svgWrap);
 
-        $icon.appendChild(ringEl);
+            $icon.appendChild(ringEl);
+        }
 
         /* Buttons */
         $actions.innerHTML = '';

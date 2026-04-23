@@ -43,7 +43,7 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
 
 // -- Route yang memerlukan autentikasi
 Route::prefix('auth')->name('api.auth.')->middleware([
-    'auth',
+    'auth:sanctum',
     'ensure.session.version',
     VerifySessionFingerprintMiddleware::class,
 ])->group(function () {

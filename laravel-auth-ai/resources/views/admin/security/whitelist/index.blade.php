@@ -17,7 +17,7 @@
                 placeholder="Cari IP atau label...">
         </form>
 
-        <button onclick="document.getElementById('addWhitelistModal').classList.remove('hidden')" 
+        <button onclick="AppModal.open('addWhitelistModal')" 
             class="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-all shadow-md shadow-emerald-500/10">
             <i class="fa-solid fa-plus text-[10px]"></i>
             Tambah IP Whitelist
@@ -91,52 +91,43 @@
 </div>
 
 <!-- Add Modal -->
-<div id="addWhitelistModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="document.getElementById('addWhitelistModal').classList.add('hidden')"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200 dark:border-slate-800">
-            <form action="{{ route('admin.security.whitelist.store') }}" method="POST">
-                @csrf
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Tambah IP Whitelist</h3>
-                    <button type="button" onclick="document.getElementById('addWhitelistModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-500">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">IP Address</label>
-                        <input type="text" name="ip_address" required 
-                            class="block w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
-                            placeholder="e.g. 192.168.1.1">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Label / Nama Perangkat</label>
-                        <input type="text" name="label" 
-                            class="block w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
-                            placeholder="e.g. Kantor Pusat, Laptop Admin 1">
-                    </div>
-                </div>
-                <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
-                    <button type="button" onclick="document.getElementById('addWhitelistModal').classList.add('hidden')" 
-                        class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all">
-                        Simpan IP
-                    </button>
-                </div>
-            </form>
+<x-app-modal id="addWhitelistModal" maxWidth="lg" title="Tambah IP Whitelist" description="Masukkan alamat IP yang akan diberikan akses tanpa filter keamanan tambahan." icon="<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'/></svg>" iconColor="emerald">
+    <form action="{{ route('admin.security.whitelist.store') }}" method="POST" id="addWhitelistForm">
+        @csrf
+        <div class="space-y-4 pt-1">
+            <div>
+                <label>IP Address</label>
+                <input type="text" name="ip_address" required placeholder="e.g. 192.168.1.1" class="font-mono">
+            </div>
+            <div>
+                <label>Label / Nama Perangkat</label>
+                <input type="text" name="label" placeholder="e.g. Kantor Pusat, Laptop Admin 1">
+            </div>
         </div>
-    </div>
-</div>
+    </form>
+
+    <x-slot name="footer">
+        <button type="button" onclick="AppModal.close('addWhitelistModal')" class="modal-btn-cancel">
+            Batal
+        </button>
+        <button type="submit" form="addWhitelistForm" class="modal-btn-primary bg-emerald-600 hover:bg-emerald-700">
+            Simpan IP
+        </button>
+    </x-slot>
+</x-app-modal>
 
 <script>
     function confirmDelete(id, ip) {
-        if(confirm(`Apakah Anda yakin ingin menghapus IP ${ip} dari daftar Whitelist?`)) {
-            document.getElementById(`delete-form-${id}`).submit();
-        }
+        AppPopup.confirm({
+            title: 'Hapus Whitelist',
+            description: `Apakah Anda yakin ingin menghapus IP <b>${ip}</b> dari daftar Whitelist? IP ini tidak lagi mendapatkan pengecualian filter keamanan.`,
+            confirmText: 'Ya, Hapus',
+            cancelText: 'Batal',
+            type: 'warning',
+            onConfirm: () => {
+                document.getElementById(`delete-form-${id}`).submit();
+            }
+        });
     }
 </script>
 @endsection

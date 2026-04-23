@@ -1,12 +1,9 @@
 <?php
 
 use App\Console\Commands\CleanupExpiredOtpsCommand;
+use App\Console\Commands\CheckSystemHealthCommand;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Artisan;
-use Mailtrap\Helper\ResponseHelper;
-use Mailtrap\MailtrapClient;
-use Mailtrap\Mime\MailtrapEmail;
-use Symfony\Component\Mime\Address;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,19 +21,38 @@ Schedule::command(CleanupExpiredOtpsCommand::class)
             ->error('Gagal menjalankan pembersihan OTP terjadwal.');
     });
 
+// Pengecekan Kesehatan Sistem setiap menit
+Schedule::command(CheckSystemHealthCommand::class)
+    ->everyMinute()
+    ->runInBackground()
+    ->withoutOverlapping();
 
-Artisan::command('send-mail', function () {
-    $email = (new MailtrapEmail())
-        ->from(new Address('hello@demomailtrap.co', 'Mailtrap Test'))
-        ->to(new Address('lazamart357@gmail.com'))
-        ->subject('You are awesome!')
-        ->category('Integration Test')
-        ->text('Congrats for sending test email with Mailtrap!')
-    ;
 
-    $response = MailtrapClient::initSendingEmails(
-        apiKey: '64a6a1f0455db0153c693916eb86fd66'
-    )->send($email);
+if (app()->environment(['local', 'testing'])) {
+    Artisan::command('send-mail', function () {
+        $apiKey = (string) config('services.mailtrap.api_key');
+        $testEmail = env('MAIL_TEST_RECEIVER', 'hello@demomailtrap.co');
 
-    var_dump(ResponseHelper::toArray($response));
-})->purpose('Send Mail');
+        if ($apiKey === '') {
+            $this->error('MAILTRAP_API_KEY belum dikonfigurasi di .env');
+            return self::FAILURE;
+        }
+
+        $email = (new \Mailtrap\Mime\MailtrapEmail())
+            ->from(new \Symfony\Component\Mime\Address('hello@demomailtrap.co', 'Mailtrap Test'))
+            ->to(new \Symfony\Component\Mime\Address($testEmail))
+            ->subject('You are awesome!')
+            ->category('Integration Test')
+            ->text('Congrats for sending test email with Mailtrap!');
+
+        try {
+            $response = \Mailtrap\MailtrapClient::initSendingEmails(apiKey: $apiKey)->send($email);
+            dump(\Mailtrap\Helper\ResponseHelper::toArray($response));
+            $this->info("Email berhasil dikirim ke {$testEmail}");
+            return self::SUCCESS;
+        } catch (\Exception $e) {
+            $this->error("Gagal mengirim email: " . $e->getMessage());
+            return self::FAILURE;
+        }
+    })->purpose('Send Mail (local/testing only)');
+}

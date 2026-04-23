@@ -1,75 +1,64 @@
-# Spesifikasi Deteksi Inferensi API (AI Edge)
+﻿# AI Risk API
 
-Modul Python FastAPI mengkalibrasi ancaman menggunakan protokol jaringan internal berkecepatan tinggi. API ini secara reguler **tidak terekspos keluar dinding firewall** dan secara ketat ditugaskan hanya untuk melayani request internal FastCGI/PHP.
+API ini berjalan di service `fastapi-risk` dan digunakan internal oleh Laravel.
 
----
+## Endpoint Utama
 
-## 1. Terminal Skoring Deteksi (Analyze Endpoint)
+| Method | Endpoint | Fungsi |
+|---|---|---|
+| POST | `/api/v1/risk-score` | Menghitung skor risiko login |
+| GET | `/health` | Health check service |
 
-Fungsi inti matematis sistem untuk melakukan konversi riwayat log klien menjadi skor probabilitas empiris (0.0 sampai 100.0).
+## Authentication Header
 
-**Alamat Internal Tersembunyi:** `POST http://fastapi-risk:8000/analyze`
+API internal menggunakan API key antar service.
 
-**Penerapan Pembatasan:**
-- Akses mutlak ditolak bila sandi `X-API-Key` diskrepansi dengan variabel lingkungan Docker.
-
-### Atribut Masukan Validasi Pydantic (JSON Payload)
-
-| Kunci | Format Tipe | Penjabaran Operasional |
-|-------|-------------|------------|
-| `ip_address` | String | Format IPv4/IPv6 tunggal. |
-| `user_agent` | String | Deskripsi peramban (Browser Strings) untuk pemetaan proksi ancaman. |
-| `failed_attempts` | Bilangan Bulat | Akumulatif perhitungan log kegagalan identitas dalam rentang 30 menit. |
-| `is_new_device` | Boolean | True apabila klien belum pernah mengotentikasi dari SID/UUID (Fingerprint) yang serupa. |
-| `geo_anomaly` | Float | Koefisien anomali pergerakan lintas negara dalam satuan jarak waktu (1.0 = Anomali Tinggi). |
-
-### Ilustrasi Panggilan dari Aplikasi (Laravel HTTP Client)
-
-```php
-$response = Http::withHeaders([
-    'X-API-Key' => config('security.ai_api_key'),
-    'Accept' => 'application/json',
-])->post('http://fastapi-risk:8000/analyze', [
-    'ip_address' => '192.168.1.15',
-    'user_agent' => 'Mozilla/5.0...',
-    'failed_attempts' => 2,
-    'is_new_device' => true,
-    'geo_anomaly' => 0.0
-]);
+```http
+X-API-Key: <AI_API_KEY>
+Content-Type: application/json
+Accept: application/json
 ```
 
-### Balasan Skoring Resolusi (200 OK)
+## POST /api/v1/risk-score
 
-Balasan kalkulasi dari AI yang dikomsumsi ulang oleh kontroler PHP untuk keputusan lanjutan.
+### Contoh Request
 
 ```json
 {
-  "risk_score": 65.4,
-  "risk_level": "High",
-  "recommended_action": "require_mfa",
-  "factors": [
-    "Unidentified physical origin (New device)",
-    "Repetitive credentials rejection behavior"
-  ],
-  "timestamp": "2026-04-19T20:15:30Z"
+  "ip_risk_score": 45,
+  "is_vpn": false,
+  "is_new_device": true,
+  "is_new_country": false,
+  "login_hour": 14,
+  "failed_attempts": 2,
+  "request_speed": 1.1,
+  "device_trust_score": 0.7
 }
 ```
 
----
-
-## 2. Pemeriksaan Denyut Kehidupan (Health Check)
-
-Subsistem ini diotorisasi secara persisten oleh orstrator kontainer (`docker-compose healthcheck`) untuk me-restart layanan manakala mesin Python mengunci.
-
-**Alamat Internal Tersembunyi:** `GET http://fastapi-risk:8000/health`
-
-### Respon Sinkron (200 OK)
+### Contoh Response
 
 ```json
 {
-  "status": "online",
-  "model_loaded": true,
-  "version": "1.0.1",
-  "uptime_seconds": 12450
+  "risk_score": 57.3,
+  "decision": "OTP",
+  "reason_flags": ["new_device", "failed_attempts:2"],
+  "confidence": 0.86
 }
 ```
+
+## GET /health
+
+Contoh response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+## Catatan Integrasi
+
+- Endpoint AI tidak untuk akses publik internet.
+- URL default internal: `http://fastapi-risk:8000`.
+- Jika timeout/error, Laravel menggunakan fallback scoring sesuai konfigurasi.

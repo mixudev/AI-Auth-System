@@ -262,17 +262,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isAdmin(): bool
     {
-        // Primary source of truth: RBAC roles
-        if ($this->hasRole(['super-admin', 'admin'])) {
-            return true;
-        }
-
-        // Backward compatible fallback (bootstrap / emergency access)
-        return in_array(
-            strtolower($this->email),
-            config('security.admin_emails', []),
-            true
-        );
+        return $this->hasRole(['super-admin', 'admin']);
     }
 
     /**

@@ -7,20 +7,43 @@
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'SecureAuth') — AI Auth System</title>
+    <title>{{ env('APP_NAME') }} — @yield('title')</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ asset('assets/icon/logo-2.png') }}">
 
     <script>
-(function () {
-    const theme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        (function () {
+            // Theme Check
+            const theme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    if (theme === 'dark' || (!theme && prefersDark)) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-})();
-</script>
+            if (theme === 'dark' || (!theme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            // Sidebar Check (Run ASAP to prevent flash)
+            if (localStorage.getItem('sidebarCollapsed') === '1') {
+                document.documentElement.classList.add('sidebar-is-collapsed');
+            }
+        })();
+    </script>
+
+    <style>
+        /* Instant width without waiting for external CSS */
+        html.sidebar-is-collapsed #sidebar { width: 5rem !important; }
+        html.sidebar-is-collapsed .main-wrapper { padding-left: 5rem !important; }
+        html.sidebar-is-collapsed #sidebar .sidebar-label,
+        html.sidebar-is-collapsed #sidebar .sidebar-badge,
+        html.sidebar-is-collapsed #sidebar .sidebar-dot-badge,
+        html.sidebar-is-collapsed #sidebar .sidebar-section-title,
+        html.sidebar-is-collapsed #sidebar #logo-text,
+        html.sidebar-is-collapsed #sidebar .sidebar-user-info,
+        html.sidebar-is-collapsed #sidebar .sidebar-user-chevron { display: none !important; }
+    </style>
+
+    <script src="//unpkg.com/alpinejs" defer></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -37,7 +60,8 @@
         integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ time() }}" />
+    <script src="{{ asset('assets/js/command-palette.js') }}?v={{ time() }}" defer></script>
 
     <script>
         tailwind.config = {
@@ -55,7 +79,10 @@
 
 </head>
 
-<body class="font-sans bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased">
+<body class="font-sans bg-gray-200 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased">
+
+    <!-- Main Command Palette -->
+    <x-command-palette id="commandPalette" />
 
     <!-- Overlay -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden lg:hidden"
@@ -149,15 +176,17 @@
         // ─── COLLAPSIBLE SIDEBAR (desktop)
         let sidebarCollapsed = false;
 
-        function applyCollapseState(collapsed, animate) {
+        function applyCollapseState(collapsed) {
             const sidebar = document.getElementById('sidebar');
             const mainWrapper = document.getElementById('mainWrapper');
 
             if (collapsed) {
+                document.documentElement.classList.add('sidebar-is-collapsed');
                 sidebar.classList.add('collapsed');
                 mainWrapper.classList.add('sidebar-collapsed');
                 document.body.classList.add('sidebar-is-collapsed');
             } else {
+                document.documentElement.classList.remove('sidebar-is-collapsed');
                 sidebar.classList.remove('collapsed');
                 mainWrapper.classList.remove('sidebar-collapsed');
                 document.body.classList.remove('sidebar-is-collapsed');
@@ -172,11 +201,9 @@
 
         // Restore state on load
         (function initCollapse() {
-            const saved = localStorage.getItem('sidebarCollapsed');
-            if (saved === '1') {
+            if (localStorage.getItem('sidebarCollapsed') === '1') {
                 sidebarCollapsed = true;
-                // Apply without triggering transition flash on load
-                applyCollapseState(true, false);
+                applyCollapseState(true);
             }
         })();
 
@@ -242,7 +269,7 @@
         function toggleNotif() {
             const p = document.getElementById('notifPanel');
             p.classList.toggle('open');
-            if (p.classList.contains('open')) renderNotifs();
+            if (p.classList.contains('open')) fetchNotifs();
         }
         document.addEventListener('click', e => {
             if (!document.getElementById('profileDropdownWrapper').contains(e.target)) document.getElementById(
@@ -254,7 +281,7 @@
         // ─── NOTIFICATIONS
         async function fetchNotifs() {
             try {
-                const req = await fetch('/dashboard/api/notifications');
+                const req = await fetch('/dashboard/notifications/api');
                 const res = await req.json();
                 
                 const list = document.getElementById('notifList');
@@ -289,7 +316,7 @@
                     }
 
                     return `
-                        <div class="notif-item px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex gap-3 items-start">
+                        <div class="notif-item px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex gap-3 items-start relative group">
                             <span class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 ${bg} ${text}">
                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     ${icon}
@@ -300,7 +327,15 @@
                                 <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5" style="line-height: 1.3;">${n.message}</div>
                                 <div class="text-[9px] font-mono text-slate-400 mt-1">${n.time_ago}</div>
                             </div>
-                            <span class="unread-dot w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0 mt-1.5"></span>
+                            ${!n.read_at ? '<span class="unread-dot w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0 mt-1.5"></span>' : ''}
+                            
+                            <div class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="deleteNotif(${n.id}, event)" class="p-1 text-slate-400 hover:text-red-500 transition-colors" title="Delete">
+                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -310,7 +345,7 @@
 
         async function clearNotifs() {
             try {
-                await fetch('/dashboard/api/notifications/read-all', {
+                await fetch('/dashboard/notifications/api/read-all', {
                     method: 'POST',
                     headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
                 });
@@ -320,7 +355,33 @@
                 dots.forEach(el => el.remove());
                 document.getElementById('notifBadge').style.display = 'none';
                 showToast('Notifikasi', 'Semua notifikasi keamanan ditandai telah dibaca', 'success');
+                fetchNotifs(); // Refresh content
             } catch(e) { }
+        }
+
+        async function deleteNotif(id, event) {
+            if(event) event.stopPropagation();
+            
+            try {
+                const res = await fetch(`/dashboard/notifications/api/${id}`, {
+                    method: 'DELETE',
+                    headers: { 
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if(res.ok) {
+                    fetchNotifs();
+                    showToast('Sukses', 'Notifikasi dihapus', 'success');
+                } else {
+                    const err = await res.json();
+                    showToast('Gagal', err.message || 'Gagal menghapus', 'error');
+                }
+            } catch(e) { 
+                console.error('Delete failed', e);
+                showToast('Error', 'Kesalahan jaringan', 'error');
+            }
         }
 
         // ─── INIT
@@ -369,6 +430,28 @@
             }
         });
         
+        // ─── GLOBAL TOAST WRAPPER
+        window.showToast = function (a, b, c = 'success') {
+            if (typeof AppPopup === 'undefined') return;
+            
+            let type = c, title = a, msg = b;
+            const validTypes = ['success', 'error', 'warning', 'info', 'confirm'];
+            
+            // Handle (type, msg) signature
+            if (validTypes.includes(a) && b && arguments.length <= 2) {
+                type = a;
+                title = a.charAt(0).toUpperCase() + a.slice(1);
+                msg = b;
+            }
+            
+            AppPopup.show({
+                type: type,
+                title: title,
+                description: msg,
+                showButton: type !== 'success',
+                autoClose: type === 'success' ? 3000 : null
+            });
+        };
     </script>
     @stack('scripts')
 </body>

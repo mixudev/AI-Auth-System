@@ -95,6 +95,18 @@
                 </div>
                 @endif
 
+                @if(session('requires_captcha') && !config('services.captcha.site_key'))
+                    <div class="alert alert-error">
+                        CAPTCHA challenge aktif, tetapi <code>CAPTCHA_SITE_KEY</code> belum terkonfigurasi.
+                    </div>
+                @endif
+
+                @if(session('captcha_config_error'))
+                    <div class="alert alert-error">
+                        {{ session('captcha_config_error') }}
+                    </div>
+                @endif
+
                 {{-- Email error (non rate-limit) --}}
                 @if($errors->has('email') && !session('rate_limited'))
                     <div class="alert alert-error">{{ $errors->first('email') }}</div>
@@ -166,14 +178,14 @@
                                 {{-- Widget CAPTCHA Asli (Cloudflare Turnstile) --}}
                                 <div class="cf-turnstile" data-sitekey="{{ config('services.captcha.site_key') }}" data-action="login" data-theme="dark" data-response-field-name="captcha_token"></div>
                             @else
-                                {{-- Mode Bypass/Fallback untuk Development apabila env CAPTCHA belum diisi --}}
-                                <label class="form-label" style="color: #ef4444;" for="captcha_token">Mode Bypass Dev (Isi sembarang teks)</label>
+                                {{-- Fallback input token jika site key belum ada (backend tetap validasi konfigurasi) --}}
+                                <label class="form-label" style="color: #ef4444;" for="captcha_token">Input Token CAPTCHA (Konfigurasi belum lengkap)</label>
                                 <input
                                     type="text"
                                     name="captcha_token"
                                     id="captcha_token"
                                     class="form-input {{ $errors->has('captcha_token') ? 'is-error' : '' }}"
-                                    placeholder="Input test (Bypass Mode Dev)"
+                                    placeholder="Captcha tidak bisa diverifikasi sebelum CAPTCHA_SECRET valid"
                                     required
                                 />
                             @endif

@@ -22,8 +22,19 @@
                     $isBlocked  = $user->is_blocked;
                     $isActive   = $user->is_active && !$isBlocked;
                     $blockCount = $user->user_blocks_count ?? 0;
-                    $detailData = $user->only(["id","name","email","is_active","last_login_ip","last_login_at","email_verified_at","created_at"]);
-                    $editData   = $user->only(["id","name","email","is_active","email_verified_at"]);
+                    
+                    // Format roles for JS
+                    $userRoles = $user->roles->map(fn($r) => ['name' => $r->name, 'slug' => $r->slug])->toArray();
+                    
+                    $detailData = array_merge(
+                        $user->only(["id","name","email","is_active","last_login_ip","last_login_at","email_verified_at","created_at","mfa_enabled","mfa_type"]),
+                        ['roles' => $userRoles]
+                    );
+                    
+                    $editData = array_merge(
+                        $user->only(["id","name","email","is_active","email_verified_at"]),
+                        ['roles' => $userRoles]
+                    );
                 @endphp
                 <tr
                     class="border-b border-slate-50 dark:border-slate-800/60 last:border-0 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors group"

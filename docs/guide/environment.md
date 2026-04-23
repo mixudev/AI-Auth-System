@@ -1,150 +1,70 @@
-# Referensi Variabel Lingkungan (.env)
+﻿# Konfigurasi Environment
 
-Dokumentasi ini merinci seluruh konfigurasi konstanta sistem (_environment variables_) yang mengatur sirkulasi data antar layanan di arsitektur Docker Compose.
+Dokumen ini menjelaskan lokasi file env, variabel penting, dan prosedur aman setelah perubahan.
 
----
+## Lokasi File Env
 
-## Kedudukan File `.env`
+| File | Dipakai Oleh |
+|---|---|
+| `.env` (root) | Docker Compose level |
+| `laravel-auth-ai/.env` | Laravel app/worker/scheduler |
+| `ai-security/.env` | FastAPI risk service |
 
-Terdapat tiga lapisan berkas konfigurasi pada repositori ini:
+## Variabel Penting Laravel
 
-| Lokasi File | Mengintervensi Layanan | Keterangan |
-|------|---------------|------------|
-| `.env` (Root) | Docker Compose Daemon | Mendeklarasikan profil keamanan level infrastruktur mesin Host. |
-| `laravel-auth-ai/.env` | Laravel FPM App & CLI | Memuat konfigurasi kunci keamanan, pangkalan data, dan SMTP. |
-| `ai-security/.env` | Python FastAPI | Skoring batas *AI Risk Threshold* dan kredensial API Key internal. |
+| Variabel | Fungsi |
+|---|---|
+| `APP_ENV`, `APP_DEBUG`, `APP_URL` | Runtime aplikasi |
+| `DB_*` | Koneksi database |
+| `REDIS_*` | Cache/session/queue |
+| `MAIL_*` | Pengiriman email OTP/reset |
+| `AI_RISK_SERVICE_URL`, `AI_RISK_API_KEY` | Integrasi AI risk |
+| `RATE_LIMIT_CHALLENGE` | Mode challenge: `captcha` / `throttle` |
+| `CAPTCHA_SITE_KEY`, `CAPTCHA_SECRET` | Konfigurasi captcha |
+| `CAPTCHA_DEBUG_LOG` | Log status runtime captcha |
 
----
+## Variabel Penting FastAPI
 
-## Root `.env` (Tingkat Docker Infrastruktur)
+| Variabel | Fungsi |
+|---|---|
+| `AI_API_KEY` | Validasi request dari Laravel |
+| `RISK_THRESHOLD_*` | Batas keputusan skor |
+| `HOST`, `PORT`, `WORKERS` | Runtime Uvicorn |
 
-File ini digunakan secara eksklusif oleh rantaian `docker-compose.yml` untuk penetapan argumen ketika tahapan *Container Spawning*.
+## Prosedur Setelah Ubah Env
 
-```ini
-# Akses Tertinggi Database Induk
-MYSQL_ROOT_PASSWORD=     # Dialokasikan otomatis oleh setup.sh
+### Jika ubah `laravel-auth-ai/.env`
 
-# Pembatasan Akses Storage In-Memory
-REDIS_PASSWORD=          # Dialokasikan otomatis oleh setup.sh
-
-# Kredensial Isolasi Layanan Database
-DB_PASSWORD=             # Dialokasikan otomatis oleh setup.sh
+```powershell
+docker compose up -d --force-recreate app worker scheduler
+docker compose exec -T app php artisan config:clear
+docker compose exec -T app php artisan cache:clear
 ```
 
-> **Catatan Orkestrasi Otomatis:**
-> Mohon untuk **tidak menetapkan string secara manual** pada nilai di atas apabila ini adalah instalasi pertama. Skrip `setup.sh` telah diprogram untuk mendistribusikan entropi string di luar jangkauan _dictionary attack_ menggunakan `/dev/urandom`.
+### Jika ubah `ai-security/.env`
 
----
-
-## Backend `.env` — `laravel-auth-ai/.env`
-
-### Spesifikasi Persistensi Data (Database)
-
-```ini
-DB_CONNECTION=mysql
-DB_HOST=db              # FQDN Docker Service Internal
-DB_PORT=3306            # Kanal Port MySQL Native (Bukan 3307 dari host!)
-DB_DATABASE=auth_db
-DB_USERNAME=auth_user
-DB_PASSWORD=            # Harus presisi sama dengan Root .env DB_PASSWORD
+```powershell
+docker compose up -d --force-recreate fastapi-risk
 ```
 
-### Mekanisme Sesi dan Caching (Redis)
+### Jika ubah root `.env`
 
-```ini
-CACHE_DRIVER=redis
-SESSION_DRIVER=redis
-SESSION_LIFETIME=120    # Durasi persistensi sesi aktif (Menit)
-
-REDIS_HOST=redis        # FQDN Docker Service Internal
-REDIS_PASSWORD=         # Harus presisi sama dengan Root .env REDIS_PASSWORD
-REDIS_PORT=6379
+```powershell
+docker compose up -d --force-recreate db redis app worker scheduler fastapi-risk
 ```
 
-### Relasi Manajemen Antrean (Queue)
+## Validasi Nilai Runtime
 
-```ini
-QUEUE_CONNECTION=redis
-QUEUE_FAILED_TABLE=failed_jobs
+### Cek env di container
+
+```powershell
+docker compose exec -T app sh -lc "printenv | grep -E '^(RATE_LIMIT_CHALLENGE|CAPTCHA_SITE_KEY|CAPTCHA_SECRET|CAPTCHA_DEBUG_LOG)=' || true"
 ```
 
-### Relay SMTP (Pengiriman Surel OTP) — Wajib Distel Manual
+### Cek config Laravel yang dipakai
 
-```ini
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailgun.org
-MAIL_PORT=587
-MAIL_USERNAME=noreply@doman-anda.com
-MAIL_PASSWORD=api-key-smtp-khusus
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=noreply@domain-anda.com
-MAIL_FROM_NAME="Portal Sistem Keamanan"
+```powershell
+docker compose exec -T app php artisan tinker --execute="dump(config('security.rate_limit.challenge')); dump((string) config('services.captcha.site_key')); dump((string) config('services.captcha.secret'));"
 ```
 
-> **Konfigurasi Akun Aplikasi Eksternal:**
-> Sangat disarankan untuk tidak menggunakan *password* utama surel (seperti sandi reguler Gmail) demi alasan keamanan operasional. Silakan pergunakan dukungan pembuatan *App Passwords* atau layanan kurir pihak ketiga seperti AWS SES/Mailgun.
-
-### Jaringan Distribusi Intelijensi API (FastAPI)
-
-```ini
-AI_SERVICE_URL=http://fastapi-risk:8000   # Jaringan internal tak terekspos
-AI_SERVICE_TIMEOUT=5                       # Toleransi latensi (Detik)
-AI_API_KEY=                               # Diinisiasi oleh Artisan Generate
-```
-
-### Restriksi Lalu Lintas & Filter Ancaman (Security Limiters)
-
-```ini
-RATE_LIMIT_LOGIN=10          # Laju ambang per-permintaan masuk per 60 detik
-RATE_LIMIT_OTP=5             # Laju ambang emisi OTP beruntun
-CAPTCHA_RISK_THRESHOLD=60    # Pemicu tantangan akses sekunder manual (High Risk)
-BLOCK_RISK_THRESHOLD=85      # Isolasi persisten dari layanan jika melebihi batas (Critical)
-
-OTP_EXPIRY_MINUTES=5         # Interval peluruhan OTP sebelum invalidasi
-OTP_MAX_ATTEMPTS=3           # Toleransi laju kesalahan penebakan OTP
-```
-
-### Informasi Aplikasi Domain Utama
-
-```ini
-APP_NAME="Secure Auth Service"
-APP_ENV=production           # Harus 'production' dalam deployment eksternal
-APP_KEY=                     # Diinisiasi oleh perintah `php artisan key:generate`
-APP_DEBUG=false              # Mutlak `false` untuk mencegah kebocoran jejak (stack errors)
-APP_URL=https://sistem.domain-anda.com
-```
-
----
-
-## AI Edge Service `.env` — `ai-security/.env`
-
-```ini
-# Parameter Operasional Modul
-APP_ENV=production
-LOG_LEVEL=info
-
-# Restriksi Antar-Layanan
-AI_API_KEY=              # Harus presisi identik dengan Laravel AI_API_KEY
-
-# Direktori & Model Evaluator
-RISK_MODEL_PATH=/app/app/models/risk_model.pkl
-RISK_THRESHOLD_LOW=30
-RISK_THRESHOLD_MEDIUM=60
-RISK_THRESHOLD_HIGH=80
-
-# Alamat Server Uvicorn 
-HOST=0.0.0.0
-PORT=8000
-WORKERS=2
-```
-
----
-
-## Relasi Pemetaan Port Layanan (Ringkasan Ingress)
-
-| Argumen Lingkungan | Ketetapan Awal | Peranan Fungsional |
-|----------|---------|------------|
-| `APP_URL` | http://localhost:8080 | Eksposur Aplikasi PHP-FPM publik dari Reverse Proxy. |
-| `DB_PORT` | 3306 | Komunikasi koneksi SQL internal dalam kontainer Docker. |
-| `REDIS_PORT` | 6379 | Komunikasi koneksi memori persisten internal. |
-| `AI_SERVICE_URL` | http://fastapi-risk:8000 | Panggilan inferensi model AI tertutup dari ruang FPM. |
+Jika hasil runtime tidak sama dengan `.env`, service belum sinkron dan perlu recreate.

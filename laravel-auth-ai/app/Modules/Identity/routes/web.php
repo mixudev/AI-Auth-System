@@ -39,6 +39,10 @@ Route::middleware(['auth', 'ensure.session.version', 'verify.fingerprint'])->gro
     
     Route::prefix('dashboard')->group(function () {
         
+        // Global Search API
+        Route::get('/api/global-search', [GlobalSearchController::class, 'search'])
+            ->name('dashboard.api.search');
+
         // User Management
         Route::name('dashboard.users.')
             ->prefix('users')

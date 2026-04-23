@@ -157,9 +157,8 @@ class OtpService
      */
     private function generateSecureNumericCode(int $length): string
     {
-        $min  = (int) str_pad('1', $length, '0');       // misal 6 digit: 100000
-        $max  = (int) str_repeat('9', $length);          // misal 6 digit: 999999
-        $code = random_int($min, $max);
+        $max  = (10 ** $length) - 1;
+        $code = random_int(0, $max);
 
         return str_pad((string) $code, $length, '0', STR_PAD_LEFT);
     }

@@ -1,13 +1,10 @@
-@extends('identity::profile.layout')
-
-@section('profile-content')
 @php
     $currentOtp = old('otp_preference', Auth::user()->otp_preference);
-    $otpOptions = [
-        ['value' => 'always',   'icon' => 'fa-shield-check', 'label' => 'Selalu',   'desc' => 'OTP diminta di setiap login tanpa pengecualian.'],
-        ['value' => 'system',   'icon' => 'fa-robot',        'label' => 'Otomatis', 'desc' => 'Sistem memutuskan berdasarkan faktor risiko.'],
-        ['value' => 'disabled', 'icon' => 'fa-shield-xmark', 'label' => 'Nonaktif', 'desc' => 'OTP tidak pernah diminta (tidak direkomendasikan).'],
-    ];
+$otpOptions = [
+    ['value' => 'always',   'icon' => 'fa-shield-alt',   'label' => 'Selalu',   'desc' => 'OTP diminta di setiap login tanpa pengecualian.'],
+    ['value' => 'system',   'icon' => 'fa-robot',        'label' => 'Otomatis', 'desc' => 'Sistem memutuskan berdasarkan faktor risiko.'],
+    ['value' => 'disabled', 'icon' => 'fa-shield-alt',   'label' => 'Nonaktif', 'desc' => 'OTP tidak pernah diminta (tidak direkomendasikan).'],
+];
 @endphp
 
 <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -20,13 +17,6 @@
     </div>
 
     <div class="p-8">
-        @if(session('success'))
-            <div class="mb-6 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800/50 flex items-center gap-3">
-                <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
-                <p class="text-xs font-medium text-emerald-700 dark:text-emerald-400">{{ session('success') }}</p>
-            </div>
-        @endif
-
         <form action="{{ route('dashboard.profile.preferences.update') }}" method="POST" class="space-y-8">
             @csrf
 
@@ -66,16 +56,27 @@
                         <label class="cursor-pointer" data-otp-card="{{ $opt['value'] }}">
                             <input type="radio" name="otp_preference" value="{{ $opt['value'] }}"
                                 class="otp-radio hidden" {{ $isChecked ? 'checked' : '' }}>
-                            <div class="w-full p-4 rounded-lg border transition-all select-none
-                                        {{ $isChecked ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-900/10' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800' }}"
-                                 data-otp-box="{{ $opt['value'] }}">
-                                <i class="fa-solid {{ $opt['icon'] }} text-lg mb-2 block transition-colors
-                                          {{ $isChecked ? 'text-violet-500' : 'text-slate-300 dark:text-slate-600' }}"
-                                   data-otp-icon="{{ $opt['value'] }}"></i>
-                                <p class="text-xs font-bold transition-colors
-                                          {{ $isChecked ? 'text-violet-700 dark:text-violet-400' : 'text-slate-700 dark:text-slate-300' }}"
-                                   data-otp-label="{{ $opt['value'] }}">{{ $opt['label'] }}</p>
-                                <p class="text-[10px] text-slate-400 mt-1 leading-relaxed">{{ $opt['desc'] }}</p>
+                            <div class="w-full p-4 rounded-lg border transition-all select-none flex items-start gap-3
+                                {{ $isChecked ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-900/10' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800' }}"
+                                data-otp-box="{{ $opt['value'] }}">
+                                
+                                <!-- ICON -->
+                                <i class="fa-solid {{ $opt['icon'] }} text-lg mt-1 transition-colors
+                                    {{ $isChecked ? 'text-violet-500' : 'text-slate-300 dark:text-slate-600' }}"
+                                    data-otp-icon="{{ $opt['value'] }}"></i>
+
+                                <!-- TEXT -->
+                                <div>
+                                    <p class="text-xs font-bold transition-colors
+                                        {{ $isChecked ? 'text-violet-700 dark:text-violet-400' : 'text-slate-700 dark:text-slate-300' }}"
+                                        data-otp-label="{{ $opt['value'] }}">
+                                        {{ $opt['label'] }}
+                                    </p>
+
+                                    <p class="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                                        {{ $opt['desc'] }}
+                                    </p>
+                                </div>
                             </div>
                         </label>
                     @endforeach
@@ -92,4 +93,3 @@
         </form>
     </div>
 </div>
-@endsection

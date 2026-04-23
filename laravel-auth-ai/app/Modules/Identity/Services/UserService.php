@@ -21,7 +21,7 @@ class UserService
     public function getUsers(array $filters = []): LengthAwarePaginator
     {
         $query = User::withTrashed()
-            ->with(['activeBlock'])
+            ->with(['activeBlock', 'roles'])
             ->withCount(['loginLogs', 'userBlocks']);
 
         // Search
@@ -100,6 +100,10 @@ class UserService
                     : null,
             ]);
 
+            if (isset($data['roles'])) {
+                $user->roles()->sync($data['roles']);
+            }
+
             return $user;
         });
     }
@@ -129,6 +133,10 @@ class UserService
             }
 
             $user->update($payload);
+
+            if (isset($data['roles'])) {
+                $user->roles()->sync($data['roles']);
+            }
 
             return $user->fresh();
         });

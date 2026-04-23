@@ -2,10 +2,9 @@
 
 namespace Tests\Feature\Auth;
 
-use App\DTOs\RiskAssessmentResult;
+use App\Shared\DTO\RiskAssessmentResult;
 use App\Models\User;
-use App\Services\AiRiskClientService;
-use App\Services\RiskFallbackService;
+use App\Modules\Security\Services\AiRiskClientService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -95,7 +94,7 @@ class LoginRiskAssessmentTest extends TestCase
         ]);
 
         // Fallback harus memproses — bukan 500 error
-        $response->assertStatus(fn($status) => in_array($status, [200, 202, 403]));
+        $this->assertTrue(in_array($response->status(), [200, 202, 403], true));
     }
 
     /**

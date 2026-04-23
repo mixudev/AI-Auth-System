@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\DTOs\RiskAssessmentResult;
+use App\Shared\DTO\RiskAssessmentResult;
 use App\Modules\Authentication\Models\OtpVerification;
 use App\Models\User;
 use App\Modules\Security\Services\DeviceFingerprintService;

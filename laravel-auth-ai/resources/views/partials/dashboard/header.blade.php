@@ -20,20 +20,20 @@
                 </svg>
             </button>
 
-            <!-- Search -->
+            <!-- Search Trigger (Modern Doc Style) -->
             <div class="flex-1 max-w-md relative hidden lg:block">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input id="searchInput" type="text" placeholder="Search users, apps, logs..."
-                    oninput="handleSearch(this.value)"
-                    class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400"
-                    style="transition:border 150ms, box-shadow 150ms" />
-                <div id="searchResults"
-                    class="hidden absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden py-1">
-                </div>
+                <button type="button" 
+                        id="globalSearchTrigger" 
+                        class="w-full flex items-center gap-3 px-3.5 py-2 text-sm bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl text-slate-400 hover:border-violet-400/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm transition-all group cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-violet-400/20">
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-violet-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <span class="flex-1">Search for anything...</span>
+                    <div class="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <span class="kbd">Ctrl</span>
+                        <span class="kbd">K</span>
+                    </div>
+                </button>
             </div>
 
             <div class="flex items-center gap-1.5 ml-auto">
@@ -54,6 +54,7 @@
                             d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
                     </svg>
                 </button>
+
 
                 <!-- Notifications -->
                 <div class="relative" id="notifWrapper">
@@ -88,14 +89,20 @@
                 </div>
 
                 <!-- Activity -->
-                <button
-                    class="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    style="transition:background 150ms">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </button>
+                <div class="relative" id="healthWrapper">
+                    <button onclick="toggleHealth()" id="healthSignalBtn"
+                        class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all relative group"
+                        title="System Health">
+
+                        <div class="w-6 h-6 flex items-center justify-center pointer-events-none">
+                            <svg class="w-5 h-5 transition-colors duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" id="signalIcon">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </div>
+                        <span id="healthIndicatorDot" class="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+                    </button>
+                </div>
+
 
                 <div class="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
@@ -178,7 +185,90 @@
             </div>
         </header>
 
+        <style>
+            .notif-panel.open {
+                display: block !important;
+            }
+        </style>
+
         <script>
+            // ─── HEALTH SIGNAL
+            async function toggleHealth() {
+                try {
+                    const res = await fetch('/dashboard/api/system/health');
+                    const data = await res.json();
+                    
+                    let detailsHtml = '<div class="text-left space-y-2 mt-4 px-1 max-w-[280px] mx-auto">';
+
+                    Object.keys(data.details).forEach(key => {
+                        const info = data.details[key];
+                        const status = info.status;
+                        const color = status === 'Operational' ? 'text-emerald-500' : (status === 'Degraded' ? 'text-amber-500' : 'text-red-500');
+                        const dotColor = status === 'Operational' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : (status === 'Degraded' ? 'bg-amber-500' : 'bg-red-500');
+                        
+                        detailsHtml += `
+                            <div class="flex items-center justify-between py-2 border-b border-slate-50 dark:border-white/5 last:border-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-1.5 h-1.5 rounded-full ${dotColor}"></div>
+                                    <span class="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">${info.label}</span>
+                                </div>
+                                <span class="text-[9px] font-black ${color} tracking-tighter">${status.toUpperCase()}</span>
+                            </div>
+                        `;
+                    });
+                    detailsHtml += '</div>';
+
+                    AppPopup.show({
+                        type: data.status === 'Operational' ? 'success' : (data.status === 'Degraded' ? 'warning' : 'error'),
+                        title: 'Service Reliability',
+                        description: detailsHtml,
+                        confirmText: 'Dismiss',
+                        showButton: true
+                    });
+                } catch (e) {
+                    AppPopup.error({ title: 'Gagal', description: 'Gagal mengambil data kesehatan sistem.' });
+                }
+            }
+
+            async function fetchHealth() {
+                try {
+                    const res = await fetch('/dashboard/api/system/health');
+                    const data = await res.json();
+                    
+                    const dot = document.getElementById('healthIndicatorDot');
+                    const ring = document.getElementById('signalStatusRing');
+                    const icon = document.getElementById('signalIcon');
+                    
+                    if(!dot || !icon) return;
+
+                    // Reset classes
+                    icon.classList.remove('text-emerald-500', 'text-amber-500', 'text-red-500', 'text-slate-500');
+
+                    if(data.status === 'Operational') {
+                        dot.className = "absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.6)]";
+                        if(ring) ring.className = "absolute inset-1 rounded-lg border-2 border-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity";
+                        icon.classList.add('text-emerald-500');
+                    } else if(data.status === 'Degraded') {
+                        dot.className = "absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full border-2 border-white dark:border-slate-900 shadow-[0_0_8px_rgba(245,158,11,0.6)]";
+                        if(ring) ring.className = "absolute inset-1 rounded-lg border-2 border-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity";
+                        icon.classList.add('text-amber-500');
+                    } else {
+                        dot.className = "absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 shadow-[0_0_8px_rgba(239,68,68,0.6)]";
+                        if(ring) ring.className = "absolute inset-1 rounded-lg border-2 border-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity";
+                        icon.classList.add('text-red-500');
+                    }
+                } catch (e) { }
+            }
+
+            // Global close logic
+            document.addEventListener('click', (e) => {
+                // Logic popup handling via AppPopup component
+            });
+
+            // Auto-check periodically
+            setInterval(fetchHealth, 60000); 
+            setTimeout(fetchHealth, 1000); // Initial check
+
             document.getElementById('btn-logout').addEventListener('click', () => {
                 AppPopup.confirm({
                     title: 'Logout?',

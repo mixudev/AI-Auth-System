@@ -73,4 +73,57 @@ class TrustedDevice extends Model
     {
         $this->update(['is_revoked' => true]);
     }
+
+    // -----------------------------------------------------------------------
+    // Accessors
+    // -----------------------------------------------------------------------
+
+    /**
+     * Dapatkan nama browser dari label.
+     */
+    public function getBrowserNameAttribute(): string
+    {
+        $parts = explode(' di ', $this->device_label);
+        return $parts[0] ?? 'Unknown Browser';
+    }
+
+    /**
+     * Dapatkan nama OS dari label.
+     */
+    public function getOsNameAttribute(): string
+    {
+        $parts = explode(' di ', $this->device_label);
+        return $parts[1] ?? 'Unknown OS';
+    }
+
+    /**
+     * Periksa apakah kepercayaan perangkat telah kedaluwarsa.
+     */
+    public function getIsExpiredAttribute(): bool
+    {
+        if (!$this->trusted_until) return false;
+        return $this->trusted_until->isPast();
+    }
+
+    /**
+     * Periksa apakah perangkat masih aktif (tidak dicabut dan tidak kedaluwarsa).
+     */
+    public function getIsActiveAttribute(): bool
+    {
+        return !$this->is_revoked && !$this->is_expired;
+    }
+
+    /**
+     * Tentukan ikon FontAwesome berdasarkan informasi OS/Browser.
+     */
+    public function getDeviceIconAttribute(): string
+    {
+        $os = strtolower($this->os_name);
+        if (str_contains($os, 'windows')) return 'fa-brands fa-windows';
+        if (str_contains($os, 'mac') || str_contains($os, 'ios')) return 'fa-brands fa-apple';
+        if (str_contains($os, 'android')) return 'fa-brands fa-android';
+        if (str_contains($os, 'linux')) return 'fa-brands fa-linux';
+        
+        return 'fa-solid fa-laptop';
+    }
 }
