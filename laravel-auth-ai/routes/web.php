@@ -37,6 +37,9 @@ require app_path('Modules/Authorization/routes/web.php');
 // ── Wa Gateway Module Routes ───────────────────────────────────────────────
 require app_path('Modules/WaGateway/routes/web.php');
 
+// ── SSO Server Module Routes ───────────────────────────────────────────────
+require app_path('Modules/SSO/routes/web.php');
+
 // Feature Modules (sudah dimodularisasi)
 
 // ── Development Routes (non-production only) ─────────────────────────────

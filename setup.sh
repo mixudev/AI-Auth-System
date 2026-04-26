@@ -139,7 +139,18 @@ mkdir -p laravel-auth-ai/storage/framework/sessions
 mkdir -p laravel-auth-ai/storage/framework/views
 mkdir -p laravel-auth-ai/storage/framework/cache
 mkdir -p laravel-auth-ai/storage/logs
-chmod -R 777 laravel-auth-ai/storage
+chmod -R 775 laravel-auth-ai/storage
+
+# Fix permission Passport OAuth keys — WAJIB 660/600, BUKAN 777
+# Laravel Passport menolak key dengan permission terlalu longgar (777)
+if [ -f "laravel-auth-ai/storage/oauth-private.key" ]; then
+    chmod 660 laravel-auth-ai/storage/oauth-private.key
+    log_success "oauth-private.key permission diset ke 660."
+fi
+if [ -f "laravel-auth-ai/storage/oauth-public.key" ]; then
+    chmod 664 laravel-auth-ai/storage/oauth-public.key
+    log_success "oauth-public.key permission diset ke 664."
+fi
 
 log_success "Direktori siap."
 

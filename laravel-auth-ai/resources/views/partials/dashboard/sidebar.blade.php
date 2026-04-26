@@ -15,7 +15,7 @@
                 <div id="logo-text" class="overflow-hidden">
                     <div
                         class="text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-                        MixuAuth</div>
+                        {{ config('app.name') }}</div>
                     <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest whitespace-nowrap">
                         Secure Auth</div>
                 </div>
@@ -45,7 +45,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" data-page="applications" class="sidebar-link pointer-events-none opacity-50" aria-label="Applications">
+                        <a href="{{ route('sso.applications.index') }}" data-page="applications" class="sidebar-link {{ request()->routeIs('sso.applications.index') ? 'active' : '' }}" aria-label="Applications">
                             <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center">
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
                                     class="w-4 h-4">
@@ -55,7 +55,7 @@
                             </span>
                             <span class="sidebar-label">Applications</span>
                             <span
-                                class="sidebar-badge ml-auto text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-md">12</span>
+                                class="sidebar-badge ml-auto text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-md">{{ \App\Modules\SSO\Models\SsoClient::active()->count() }}</span>
                             <span class="sidebar-tooltip">Applications</span>
                         </a>
                     </li>
@@ -108,20 +108,16 @@
                     Security</p>
                 <ul class="space-y-0.5">
                     <li>
-                        <a href="{{ route('admin.security.logs.index') }}" data-page="logs" class="sidebar-link {{ request()->routeIs('admin.security.logs.*') ? 'active' : '' }}" aria-label="Auth Logs">
+                        <a href="{{ route('audit-logs.center') }}" data-page="logs" class="sidebar-link {{ request()->routeIs('audit-logs.center') ? 'active' : '' }}" aria-label="Audit Log">
                             <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
-                                    class="w-4 h-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
+                                <i class="fa-solid fa-list-ul" style="font-size: 15px;"></i>
                             </span>
-                            <span class="sidebar-label">Auth Logs</span>
-                            <span data-value="{{ $statscount['loginLogs'] }}"
-                                class="short-number sidebar-badge ml-auto text-[10px] font-mono bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-md">
-                                {{ $statscount['loginLogs'] }}
+                            <span class="sidebar-label">Audit Log</span>
+                            <span data-value="{{ ($statscount['loginLogs'] ?? 0) + ($statscount['auditLogs'] ?? 0) }}"
+                                class="short-number sidebar-badge ml-auto text-[10px] font-mono bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-sm">
+                                {{ ($statscount['loginLogs'] ?? 0) + ($statscount['auditLogs'] ?? 0) }}
                             </span>
-                            <span class="sidebar-tooltip">Auth Logs</span>
+                            <span class="sidebar-tooltip">Audit Log</span>
                         </a>
                     </li>
                     <li>
@@ -131,7 +127,7 @@
                             </span>
                             <span class="sidebar-label">Notifications</span>
                             @if(($statscount['securityNotifications'] ?? 0) > 0)
-                            <span class="sidebar-badge ml-auto text-[10px] font-mono bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-md">
+                            <span class="sidebar-badge ml-auto text-[10px] font-mono bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-sm">
                                 {{ $statscount['securityNotifications'] }}
                             </span>
                             @endif
@@ -220,74 +216,56 @@
             </div>
             @endif
 
+            {{-- SSO Server Section for Super Admins --}}
+            @if(auth()->check() && auth()->user()->hasRole('super-admin'))
+            <div>
+                <p class="sidebar-section-title px-3 mb-1.5 text-[10px] font-mono font-medium uppercase tracking-widest text-slate-400">
+                    SSO Server</p>
+                <ul class="space-y-0.5">
+                    <li>
+                        <a href="{{ route('sso.clients.index') }}" data-page="sso-clients" class="sidebar-link {{ request()->routeIs('sso.clients.*') ? 'active' : '' }}" aria-label="SSO Clients">
+                            <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center text-blue-500">
+                                <i class="fa-solid fa-plug" style="font-size: 15px;"></i>
+                            </span>
+                            <span class="sidebar-label">Client Apps</span>
+                            <span class="sidebar-tooltip">Client Apps</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('sso.access-areas.index') }}" data-page="sso-areas" class="sidebar-link {{ request()->routeIs('sso.access-areas.*') ? 'active' : '' }}" aria-label="Access Areas">
+                            <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center text-indigo-500">
+                                <i class="fa-solid fa-layer-group" style="font-size: 15px;"></i>
+                            </span>
+                            <span class="sidebar-label">Access Areas</span>
+                            <span class="sidebar-tooltip">Access Areas</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endif
+
+            @if(env('APP_CONFIG_UI', true))
             <div>
                 <p
                     class="sidebar-section-title px-3 mb-1.5 text-[10px] font-mono font-medium uppercase tracking-widest text-slate-400">
                     System</p>
                 <ul class="space-y-0.5">
                     <li>
-                        <a href="#" data-page="security" class="sidebar-link pointer-events-none opacity-50" aria-label="Security Settings">
+                        <a href="{{ route('settings.configurations.index') }}" data-page="configurations" class="sidebar-link {{ request()->routeIs('settings.configurations.*') ? 'active' : '' }}" aria-label="System Configurations">
                             <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
-                                    class="w-4 h-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             </span>
-                            <span class="sidebar-label">Security Settings</span>
-                            <span class="sidebar-tooltip">Security Settings</span>
+                            <span class="sidebar-label">Configurations</span>
+                            <span class="sidebar-tooltip">Configurations</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="#" data-page="settings" class="sidebar-link pointer-events-none opacity-50" aria-label="System Settings">
-                            <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
-                                    class="w-4 h-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                            </span>
-                            <span class="sidebar-label">System Settings</span>
-                            <span class="sidebar-tooltip">System Settings</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" class="sidebar-link dropdown-trigger pointer-events-none opacity-50" aria-label="Logs Dropdown">
-                            <span class="sidebar-icon w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
-                                    class="w-4 h-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </span>
-                            <span class="sidebar-label">Log</span>
-                            <svg class="dropdown-chevron w-3.5 h-3.5 ml-auto text-slate-400 sidebar-label"
-                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                            <span class="sidebar-tooltip">Log</span>
-                        </a>
-                        <ul class="sidebar-submenu">
-                            <div class="sidebar-submenu-inner">
-                                <li>
-                                    <a href="#" data-page="activity_logs" class="sidebar-link text-xs py-1.5"
-                                        aria-label="Log Aktivitas">
-                                        <span class="sidebar-label">Log Aktivitas</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" data-page="other_logs" class="sidebar-link text-xs py-1.5"
-                                        aria-label="Lain-lain">
-                                        <span class="sidebar-label">Lain-lain</span>
-                                    </a>
-                                </li>
-                            </div>
-                        </ul>
-                    </li>
+
                 </ul>
             </div>
+            @endif
         </nav>
 
         <!-- Sidebar Footer -->

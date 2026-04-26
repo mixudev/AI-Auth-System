@@ -74,15 +74,11 @@ class AuthController extends Controller
                 'required',
                 'string',
                 'confirmed',
-                // [H-02 FIX] Password strength rules yang lebih ketat
-                \Illuminate\Validation\Rules\Password::min(12)
-                    ->mixedCase()
-                    ->numbers()
-                    ->symbols()
-                    ->uncompromised(3), // Tolak jika muncul di breach database (HaveIBeenPwned)
+                // [H-02 FIX] Password strength rules dinamis dari settings
+                \App\Modules\Security\Services\SecurityPolicyService::getPasswordRules(),
             ],
         ], [
-            'password.min'           => 'Password minimal 12 karakter.',
+            'password.min'           => 'Password minimal ' . \App\Modules\Settings\Models\Setting::get('password_min_length', 8) . ' karakter.',
             'password.mixed_case'    => 'Password harus mengandung huruf besar dan kecil.',
             'password.numbers'       => 'Password harus mengandung minimal satu angka.',
             'password.symbols'       => 'Password harus mengandung minimal satu karakter simbol.',

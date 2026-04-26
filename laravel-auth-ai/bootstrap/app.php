@@ -51,6 +51,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Modules\Security\Middleware\SecurityHeadersMiddleware::class, // [M-05 FIX]
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'oauth/*',
+        ]);
+
         $trustedProxies = array_values(array_filter(array_map(
             static fn (string $proxy) => trim($proxy),
             explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1,::1'))
@@ -82,5 +86,7 @@ return Application::configure(basePath: dirname(__DIR__))
         App\Modules\Common\CommonServiceProvider::class,
         App\Modules\Communication\CommunicationServiceProvider::class,
         App\Modules\WaGateway\WaGatewayServiceProvider::class,
+        App\Modules\Settings\SettingsServiceProvider::class,
+        App\Modules\SSO\SSOServiceProvider::class,
     ])
     ->create();

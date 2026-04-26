@@ -151,7 +151,7 @@
 </div>
 
 {{-- MODALS --}}
-@include('admin.security.device.modals.details')
+@include('security::device.modals.details')
 
 <script>
     const API_BASE = '{{ url("admin/security/devices") }}';

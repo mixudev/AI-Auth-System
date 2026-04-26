@@ -25,12 +25,24 @@ class BlockingService
     |--------------------------------------------------------------------------
     */
 
-    // Berapa kali keputusan BLOCK dari AI sebelum auto-lock user
-    private const AUTO_LOCK_USER_AFTER  = 3;
+    /**
+     * Ambil batas auto-lock user dari settings.
+     */
+    private function getAutoLockUserLimit(): int
+    {
+        return (int) \App\Modules\Settings\Models\Setting::get('max_login_attempts', 5);
+    }
+
+    /**
+     * Ambil durasi lockout dari settings (dalam menit).
+     */
+    private function getLockoutDuration(): int
+    {
+        return (int) \App\Modules\Settings\Models\Setting::get('lockout_duration', 60);
+    }
+
     // Berapa kali keputusan BLOCK dari IP sebelum auto-blacklist IP
     private const AUTO_BLOCK_IP_AFTER   = 5;
-    // Durasi default block sementara (menit)
-    private const DEFAULT_BLOCK_MINUTES = 60;
 
     // -----------------------------------------------------------------------
     // Pemeriksaan Pre-Login
@@ -287,14 +299,14 @@ class BlockingService
     {
         $count = (int) Cache::get("block_count:user:{$userId}", 0);
 
-        if ($count >= self::AUTO_LOCK_USER_AFTER) {
+        if ($count >= $this->getAutoLockUserLimit()) {
             $alreadyBlocked = UserBlock::where('user_id', $userId)->active()->exists();
 
             if (!$alreadyBlocked) {
                 $this->blockUser(
                     $userId,
                     reason: "Auto-lock: {$count} keputusan BLOCK dalam 24 jam",
-                    minutes: self::DEFAULT_BLOCK_MINUTES,
+                    minutes: $this->getLockoutDuration(),
                     by: 'auto'
                 );
             }
@@ -312,7 +324,7 @@ class BlockingService
                 $this->blacklistIp(
                     $ip,
                     reason: "Auto-block: {$count} keputusan BLOCK dalam 24 jam",
-                    minutes: self::DEFAULT_BLOCK_MINUTES,
+                    minutes: $this->getLockoutDuration(),
                     by: 'auto'
                 );
             }

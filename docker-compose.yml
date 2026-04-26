@@ -1,5 +1,3 @@
-version: '3.9'
-
 # ============================================================
 # Stack lengkap: Laravel + FastAPI + VitePress + MySQL + Redis
 # Semua service dalam network internal yang terisolasi.
@@ -15,7 +13,14 @@ services:
       context: .
       dockerfile: docker/laravel/Dockerfile
     restart: unless-stopped
-    command: php-fpm
+    # Fix Passport key permissions setiap kali container start
+    # Bind mount dari Windows kehilangan permission Linux — wajib di-fix di sini
+    command: >
+      sh -c "
+        chmod 660 /var/www/html/storage/oauth-private.key 2>/dev/null || true &&
+        chmod 660 /var/www/html/storage/oauth-public.key 2>/dev/null || true &&
+        php-fpm
+      "
     depends_on:
       db:
         condition: service_healthy

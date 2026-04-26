@@ -55,13 +55,15 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($users as $user) {
-            User::create($user);
+            User::firstOrCreate(['email' => $user['email']], $user);
         }
 
         // Seed roles, permissions, dan assign ke users
         $this->call([
             RolePermissionSeeder::class,
             UserRoleSeeder::class,
+            AccessAreaSeeder::class,
+            SsoClientSeeder::class,
             // BigDataSeeder::class,
         ]);
     }

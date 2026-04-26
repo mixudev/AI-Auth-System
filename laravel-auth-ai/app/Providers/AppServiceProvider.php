@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
+use Laravel\Passport\Passport;
 
 
 class AppServiceProvider extends ServiceProvider
@@ -34,15 +35,26 @@ class AppServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        // ── Passport: Abaikan default routes bawaan Passport ──────────────────
+        // WAJIB dipanggil di register() agar route default Passport (/oauth/authorize, dll)
+        // tidak didaftarkan dan tidak bentrok dengan OAuthController kita.
+        // Route /oauth/token tetap dihandle Passport via middleware Kernel.
+        Passport::ignoreRoutes();
+
         // ── Shared / Cross-Module Services ────────────────────────────────────
         // Services ini digunakan oleh lebih dari satu modul, sehingga
         // didaftarkan secara global di sini.
-        // StatsService dipindahkan ke DashboardServiceProvider
         $this->app->singleton(UserService::class);
     }
 
     public function boot(): void
     {
+        // ── Passport: Pastikan key path eksplisit ─────────────────────────────
+        // Tanpa ini, Passport mencari key dari storage_path() secara default.
+        // Kita eksplisitkan agar tidak bergantung pada working directory container.
+        // Permission key harus 660 (bukan 777) agar Passport tidak menolaknya.
+        Passport::loadKeysFrom(storage_path());
+
         // Paksa koneksi HTTPS di environment production
         if ($this->app->environment('production')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');

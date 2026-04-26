@@ -11,4 +11,7 @@ return [
     App\Modules\Common\CommonServiceProvider::class,
     App\Modules\Timezone\TimezoneServiceProvider::class,
     App\Modules\WaGateway\WaGatewayServiceProvider::class,
+    App\Modules\SSO\SSOServiceProvider::class,
+    App\Modules\AuditLog\AuditLogServiceProvider::class,
+    App\Modules\Settings\SettingsServiceProvider::class,
 ];

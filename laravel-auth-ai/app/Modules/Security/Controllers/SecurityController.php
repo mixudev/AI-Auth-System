@@ -40,7 +40,7 @@ class SecurityController extends Controller
                         ->count(),
         ];
 
-        return view('admin.security.device.index', compact('devices', 'stats'));
+        return view('security::device.index', compact('devices', 'stats'));
     }
 
     /**
@@ -159,7 +159,7 @@ class SecurityController extends Controller
             'otp'     => LoginLog::where('status', 'otp_required')->count(),
         ];
             
-        return view('admin.security.log.index', compact('logs', 'stats'));
+        return view('security::log.index', compact('logs', 'stats'));
     }
 
     /**

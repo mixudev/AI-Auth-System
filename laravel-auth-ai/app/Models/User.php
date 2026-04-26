@@ -17,10 +17,12 @@ use App\Modules\Security\Models\LoginLog;
 use App\Modules\Security\Models\TrustedDevice;
 use App\Modules\Identity\Models\UserBlock;
 use App\Modules\Authentication\Models\OtpVerification;
+use App\Modules\SSO\Models\AccessArea;
+use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * Cache permission slugs untuk lifecycle request ini.
@@ -211,6 +213,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_role');
+    }
+
+    /**
+     * Relasi: User memiliki banyak Access Area (SSO).
+     * Access area digunakan oleh SSO client apps untuk kontrol akses berbasis area.
+     */
+    public function accessAreas(): BelongsToMany
+    {
+        return $this->belongsToMany(AccessArea::class, 'user_access_area');
     }
 
     /**

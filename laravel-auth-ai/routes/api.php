@@ -22,4 +22,7 @@ Route::middleware(['auth:sanctum', 'throttle:wa-send'])->group(function () {
         ->middleware('permission:wa-gateway.send');
 });
 
+// ── SSO Server Module API Routes ──────────────────────────────────────────
+require app_path('Modules/SSO/routes/api.php');
+
 

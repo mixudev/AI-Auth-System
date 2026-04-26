@@ -187,8 +187,8 @@
 </div>
 
 {{-- MODALS --}}
-@include('admin.security.log.modals.details')
-@include('admin.security.log.modals.bulk_delete')
+@include('security::log.modals.details')
+@include('security::log.modals.bulk_delete')
 
 <script>
     const API_BASE = '{{ url("admin/security/logs") }}';

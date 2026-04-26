@@ -2,83 +2,39 @@
 
 use App\Modules\Security\Controllers\SecurityController;
 use App\Modules\Security\Controllers\SystemHealthController;
+use App\Modules\Security\Controllers\Admin\SecuritySettingController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Security Module Routes
-|--------------------------------------------------------------------------
-|
-| Rute untuk pengelolaan sekuritas seperti IP Blacklist/Whitelist, Devices,
-| dan pemantauan OTP.
-|
-*/
+/**
+ * Security Module Web Routes
+ * 
+ * Mengelola rute monitoring keamanan (Logs, Devices, IP Control)
+ * dan Kebijakan Keamanan Sistem (Security Policy).
+ */
+Route::middleware(['web', 'auth'])->prefix('admin/security')->name('admin.security.')->group(function () {
+    
+    // ── Monitoring & Logs ────────────────────────────────────────────────
+    Route::get('/logs', [SecurityController::class, 'logs'])->name('logs.index');
+    Route::get('/logs/{log}/details', [SecurityController::class, 'logDetails'])->name('logs.show');
+    Route::post('/logs/bulk-delete', [SecurityController::class, 'bulkDeleteLogs'])->name('logs.bulk-delete');
 
-Route::middleware([
-    'web',
-    'auth',
-    'ensure.session.version',
-    'verify.fingerprint',
-    'role:super-admin,admin,security-officer',
-])
-    ->prefix('admin/security')
-    ->name('admin.security.')
-    ->group(function () {
-        
-        // Logs
-        Route::get('/logs', [SecurityController::class, 'logs'])
-            ->middleware('permission:login-logs.view')
-            ->name('logs.index');
-        Route::get('/logs/{log}/details', [SecurityController::class, 'logDetails'])
-            ->middleware('permission:login-logs.view')
-            ->name('logs.details');
-        Route::post('/logs/bulk-delete', [SecurityController::class, 'bulkDeleteLogs'])
-            ->middleware('permission:login-logs.view')
-            ->name('logs.bulk-delete');
+    // ── Device Management ────────────────────────────────────────────────
+    Route::get('/devices', [SecurityController::class, 'devices'])->name('devices.index');
+    Route::get('/devices/{device}/details', [SecurityController::class, 'deviceDetails'])->name('devices.show');
+    Route::post('/devices/{device}/revoke', [SecurityController::class, 'revokeDevice'])->name('devices.revoke');
 
-        // Devices
-        Route::get('/devices', [SecurityController::class, 'devices'])
-            ->middleware('permission:trusted-devices.view')
-            ->name('devices.index');
-        Route::get('/devices/{device}/details', [SecurityController::class, 'deviceDetails'])
-            ->middleware('permission:trusted-devices.view')
-            ->name('devices.details');
-        Route::post('/devices/{device}/revoke', [SecurityController::class, 'revokeDevice'])
-            ->middleware('permission:devices.revoke')
-            ->name('devices.revoke');
+    // ── OTP & Access Control ─────────────────────────────────────────────
+    Route::get('/otps', [SecurityController::class, 'otps'])->name('otps.index');
 
-        // OTPs
-        Route::get('/otps', [SecurityController::class, 'otps'])
-            ->middleware('permission:otp.view')
-            ->name('otps.index');
+    Route::get('/blacklist', [SecurityController::class, 'blacklist'])->name('blacklist.index');
+    Route::post('/blacklist', [SecurityController::class, 'storeBlacklist'])->name('blacklist.store');
+    Route::delete('/blacklist/{blacklist}', [SecurityController::class, 'destroyBlacklist'])->name('blacklist.destroy');
 
-        // Blacklist
-        Route::get('/blacklist', [SecurityController::class, 'blacklist'])
-            ->middleware('permission:ip-list.view')
-            ->name('blacklist.index');
-        Route::post('/blacklist', [SecurityController::class, 'storeBlacklist'])
-            ->middleware('permission:ip-list.blacklist')
-            ->name('blacklist.store');
-        Route::delete('/blacklist/{blacklist}', [SecurityController::class, 'destroyBlacklist'])
-            ->middleware('permission:ip-list.blacklist')
-            ->name('blacklist.destroy');
+    Route::get('/whitelist', [SecurityController::class, 'whitelist'])->name('whitelist.index');
+    Route::post('/whitelist', [SecurityController::class, 'storeWhitelist'])->name('whitelist.store');
+    Route::delete('/whitelist/{whitelist}', [SecurityController::class, 'destroyWhitelist'])->name('whitelist.destroy');
 
-        // Whitelist
-        Route::get('/whitelist', [SecurityController::class, 'whitelist'])
-            ->middleware('permission:ip-list.view')
-            ->name('whitelist.index');
-        Route::post('/whitelist', [SecurityController::class, 'storeWhitelist'])
-            ->middleware('permission:ip-list.whitelist')
-            ->name('whitelist.store');
-        Route::delete('/whitelist/{whitelist}', [SecurityController::class, 'destroyWhitelist'])
-            ->middleware('permission:ip-list.whitelist')
-            ->name('whitelist.destroy');
-    });
+    // ── System Health ────────────────────────────────────────────────────
+    Route::get('/health', [SystemHealthController::class, 'index'])->name('health');
 
-// Dashboard API Group
-Route::middleware(['web', 'auth', 'ensure.session.version', 'verify.fingerprint'])
-    ->prefix('dashboard/api')
-    ->name('dashboard.api.')
-    ->group(function () {
-        Route::get('/system/health', [SystemHealthController::class, 'index'])->name('system.health');
-    });
+});
