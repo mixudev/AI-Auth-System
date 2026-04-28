@@ -1,15 +1,15 @@
 # Laravel
-laravel-auth-ai/.env
-laravel-auth-ai/vendor/
-laravel-auth-ai/node_modules/
-laravel-auth-ai/storage/logs/*
-laravel-auth-ai/storage/framework/*
+identity-server/.env
+identity-server/vendor/
+identity-server/node_modules/
+identity-server/storage/logs/*
+identity-server/storage/framework/*
 
 # FastAPI
-ai-security/.env
-ai-security/__pycache__/
-ai-security/.venv/
-ai-security/venv/
+security-service/.env
+security-service/__pycache__/
+security-service/.venv/
+security-service/venv/
 
 # Docker
 *.log

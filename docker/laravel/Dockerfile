@@ -1,5 +1,5 @@
 # ============================================================
-# Dockerfile untuk Laravel 11 — Production-ready
+# Dockerfile untuk Laravel 13 — Production-ready
 # Build context: root direktori (AI-AUTH-02/)
 # ============================================================
 
@@ -35,7 +35,7 @@ FROM composer:2 AS deps
 
 WORKDIR /app
 
-COPY laravel-auth-ai/composer.json laravel-auth-ai/composer.lock ./
+COPY identity-server/composer.json identity-server/composer.lock ./
 
 RUN composer install \
     --no-dev \
@@ -51,7 +51,7 @@ FROM base AS production
 
 WORKDIR /var/www/html
 
-COPY laravel-auth-ai/ .
+COPY identity-server/ .
 
 COPY --from=deps /app/vendor ./vendor
 

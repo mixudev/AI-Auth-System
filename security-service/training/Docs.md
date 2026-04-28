@@ -27,7 +27,7 @@ Gunakan perintah Artisan di container Laravel untuk mengekstrak fitur login suks
 ```bash
 php artisan ai:export-training-data --output=training_data_real.csv
 ```
-Pindahkan file tersebut ke folder `ai-security/data/`.
+Pindahkan file tersebut ke folder `security-service/data/`.
 
 ### Langkah B: (Opsional) Menggunakan Data Sintetis
 Jika data di database belum cukup (minimal disarankan 10.000 baris), gunakan generator:

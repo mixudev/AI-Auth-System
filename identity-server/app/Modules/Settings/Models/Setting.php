@@ -34,15 +34,20 @@ class Setting extends Model
      */
     public static function get($key, $default = null)
     {
-        $setting = Cache::rememberForever("setting.{$key}", function () use ($key) {
-            return self::where('key', $key)->first();
-        });
+        try {
+            $setting = Cache::rememberForever("setting.{$key}", function () use ($key) {
+                return self::where('key', $key)->first();
+            });
 
-        if (!$setting) {
+            if (!$setting) {
+                return $default;
+            }
+
+            return self::castValue($setting->value, $setting->type);
+        } catch (\Throwable $e) {
+            // Jika database belum siap atau tabel tidak ditemukan, gunakan nilai default
             return $default;
         }
-
-        return self::castValue($setting->value, $setting->type);
     }
 
     /**

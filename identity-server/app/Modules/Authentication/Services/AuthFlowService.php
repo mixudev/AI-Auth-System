@@ -448,11 +448,11 @@ class AuthFlowService
         if ($request->hasSession()) {
             $request->session()->regenerate();
             
-            // [S-01 FIX] Ambil fingerprint saat ini
-            $fingerprint = $this->fingerprintService->generate($request);
+            // [S-01 FIX] Ambil fingerprint saat ini (yang sedang digunakan untuk request ini)
+            $currentFingerprint = $this->fingerprintService->generate($request);
             
-            // [M-02 FIX] Untuk perangkat baru, rotate cookie UUID setelah login
-            $isNewDevice = ! $this->trustedDeviceRepo->isTrusted($user->id, $fingerprint);
+            // [M-02 FIX] Untuk perangkat baru, siapkan cookie untuk request berikutnya
+            $isNewDevice = ! $this->trustedDeviceRepo->isTrusted($user->id, $currentFingerprint);
             
             if ($isNewDevice) {
                 $newDeviceId = $this->fingerprintService->generateNewDeviceId();
@@ -470,11 +470,12 @@ class AuthFlowService
                     'Lax'
                 );
 
-                // Update fingerprint untuk sesi agar sesuai dengan cookie baru yang akan dikirim
-                $fingerprint = hash('sha256', $newDeviceId);
+                // JANGAN langsung update $currentFingerprint ke hash dari $newDeviceId di sini.
+                // Biarkan sesi ini menggunakan fingerprint yang sekarang sedang aktif agar tidak dianggap invalid oleh middleware pada request redirect.
+                // Browser akan mengirimkan cookie baru ini pada request berikutnya, dan middleware akan otomatis mengupdate sesi di sana.
             }
 
-            $request->session()->put('auth_device_fingerprint', $fingerprint);
+            $request->session()->put('auth_device_fingerprint', $currentFingerprint);
             $request->session()->put('auth_session_version', (int) $user->session_version);
         }
 

@@ -212,7 +212,7 @@ Sistem ini memiliki keterbatasan yang perlu dipahami sebelum deployment:
 ## Struktur Direktori Lengkap
 
 ```
-ai-security/
+security-service/
 ├── app/
 │   ├── main.py                   # Entry point, registrasi router & middleware
 │   ├── health.py                 # Endpoint /health

@@ -46,13 +46,27 @@ class VerifySessionFingerprintMiddleware
             return $next($request);
         }
 
-        // Bandingkan fingerprint menggunakan perbandingan yang aman dari timing attack
+        // Bandingkan fingerprint
         if (! hash_equals($storedFingerprint, $currentFingerprint)) {
+            // [TRANSISI FIX] Periksa apakah ini adalah transisi dari legacy ke token-based
+            // Jika disimpan sebagai legacy dan sekarang ada token, kita izinkan update satu kali
+            $userAgent = strtolower(trim($request->userAgent() ?? 'none'));
+            $legacyFingerprint = hash('sha256', "legacy|{$userAgent}");
+
+            if (hash_equals($storedFingerprint, $legacyFingerprint)) {
+                // Sesi ini sebelumnya legacy, sekarang perangkat memberikan ID yang valid.
+                // Kita update sesi ke fingerprint baru dan izinkan lewat.
+                session(['auth_device_fingerprint' => $currentFingerprint]);
+                return $next($request);
+            }
+
             $userId = Auth::id();
 
-            Log::channel('security')->warning('Sesi tidak valid: fingerprint berubah', [
+            Log::channel('security')->warning('Sesi tidak valid: fingerprint berubah secara ilegal', [
                 'user_id'    => $userId,
                 'ip_address' => $this->fingerprintService->getRealIp($request),
+                'stored'     => substr($storedFingerprint, 0, 8) . '...',
+                'current'    => substr($currentFingerprint, 0, 8) . '...',
             ]);
 
             Auth::logout();

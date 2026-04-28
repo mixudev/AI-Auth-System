@@ -11,9 +11,9 @@ use Illuminate\Foundation\Configuration\Middleware;
 
 /*
 |--------------------------------------------------------------------------
-| Bootstrap Aplikasi Laravel 11
+| Bootstrap Aplikasi Laravel 13
 |--------------------------------------------------------------------------
-| Laravel 11 menggunakan file ini sebagai pengganti Kernel.php.
+| Laravel 13 menggunakan file ini sebagai pengganti Kernel.php.
 | Middleware global, route, dan exception handler dikonfigurasi di sini.
 |--------------------------------------------------------------------------
 */

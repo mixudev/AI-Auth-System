@@ -102,7 +102,7 @@ fi
 
 # 2. MYSQL_ROOT_PASSWORD
 CURRENT_MYSQL_ROOT=$(grep "^MYSQL_ROOT_PASSWORD=" .env | cut -d'=' -f2-)
-if [ -z "$CURRENT_MYSQL_ROOT" ] || [ "$CURRENT_MYSQL_ROOT" = "root_secure_9283_password_!" ] || [ "$CURRENT_MYSQL_ROOT" = "ZQ!8pV@r6FJxkNwD7m2C" ]; then
+if [ -z "$CURRENT_MYSQL_ROOT" ] || [ "$CURRENT_MYSQL_ROOT" = 'root_secure_9283_password_!' ] || [ "$CURRENT_MYSQL_ROOT" = 'ZQ!8pV@r6FJxkNwD7m2C' ]; then
     log_info "Generating new MYSQL_ROOT_PASSWORD..."
     NEW_MYSQL_ROOT=$(generate_random_string 32)
     sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" .env
@@ -114,7 +114,7 @@ fi
 
 # 3. DB_PASSWORD
 CURRENT_DB_PWD=$(grep "^DB_PASSWORD=" identity-server/.env | cut -d'=' -f2-)
-if [ -z "$CURRENT_DB_PWD" ] || [ "$CURRENT_DB_PWD" = "secret123" ] || [ "$CURRENT_DB_PWD" = "W9sLeP7T@x4RkM!2cHf" ] || [ "$CURRENT_DB_PWD" = "app_secure_7261_password_fsaA" ]; then
+if [ -z "$CURRENT_DB_PWD" ] || [ "$CURRENT_DB_PWD" = 'secret123' ] || [ "$CURRENT_DB_PWD" = 'W9sLeP7T@x4RkM!2cHf' ] || [ "$CURRENT_DB_PWD" = 'app_secure_7261_password_fsaA' ]; then
     log_info "Generating new DB_PASSWORD..."
     NEW_DB_PWD=$(generate_random_string 32)
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" .env
@@ -174,8 +174,15 @@ docker compose run --rm -u root app mkdir -p storage/framework/sessions storage/
 docker compose run --rm -u root app chown -R www-data:www-data storage
 
 log_info "Instal dependensi PHP (composer)..."
-# Menggunakan --ignore-platform-reqs agar tetap bisa jalan meskipun ada mismatch versi PHP minor antara lock file dan environment
-docker compose run --rm -u root app sh -c "composer install --no-interaction --optimize-autoloader --ignore-platform-reqs && chown -R www-data:www-data vendor"
+# PHP 8.3+ wajib untuk Laravel 13. Docker image menggunakan PHP 8.4 (sudah memenuhi syarat).
+docker compose run --rm -u root app sh -c "composer install --no-interaction --optimize-autoloader && chown -R www-data:www-data vendor"
+
+log_info "Membersihkan cache setelah instalasi dependensi..."
+docker compose run --rm app php artisan config:clear
+docker compose run --rm app php artisan route:clear
+docker compose run --rm app php artisan view:clear
+docker compose run --rm app php artisan cache:clear
+docker compose run --rm app php artisan event:clear
 
 log_info "Membersihkan file-file legacy..."
 docker compose run --rm -u root app rm -f app/Services/User/UserServiceold.php
@@ -192,6 +199,7 @@ docker compose run --rm app php artisan migrate --no-interaction --force
 log_info "Meng-cache konfigurasi Laravel..."
 docker compose run --rm app php artisan config:cache
 docker compose run --rm app php artisan route:cache
+docker compose run --rm app php artisan view:cache
 
 log_success "Laravel setup selesai."
 

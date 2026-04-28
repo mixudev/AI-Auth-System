@@ -3,6 +3,8 @@
 # Semua service dalam network internal yang terisolasi.
 # ============================================================
 
+name: mixuauth
+
 services:
 
   # ------------------------------------------------------------
@@ -31,7 +33,7 @@ services:
     volumes:
       # - app_storage:/var/www/html/storage # Dihapus agar sinkron dengan host dan Nginx
       - ./identity-server:/var/www/html
-      - ./security-service/.env:/var/www/ai-security/.env
+      - ./security-service/.env:/var/www/security-service/.env
       - vendor_data:/var/www/html/vendor
     networks:
       - internal

@@ -1,165 +1,117 @@
-# Secure Auth System — AI-Powered Authentication
+# MixuAuth: Sistem Autentikasi Berbasis AI
 
-Sistem autentikasi Laravel 11/12 yang diperkuat dengan **AI Risk Assessment** (FastAPI) untuk deteksi ancaman dini, sistem OTP, dan manajemen keamanan tingkat lanjut.
+MixuAuth adalah sistem manajemen identitas dan autentikasi yang tangguh berbasis Laravel 11/12, terintegrasi dengan microservice Penilaian Risiko berbasis AI yang ditenagai oleh FastAPI. Sistem ini menyediakan deteksi ancaman proaktif, alur autentikasi adaptif, dan arsitektur yang mengutamakan keamanan untuk aplikasi web modern.
 
----
+## Ikhtisar Teknis
 
-## 🚀 Fitur Utama
+Sistem ini memanfaatkan Machine Learning untuk mengevaluasi upaya login secara real-time, memberikan skor risiko berdasarkan pola perilaku. Bergantung pada risiko yang dihitung, sistem secara dinamis menyesuaikan tantangan autentikasi—mengizinkan akses langsung, memerlukan autentikasi multifaktor (OTP), atau memblokir aktivitas mencurigakan sepenuhnya.
 
-- **AI-Based Early Threat Detection**: Evaluasi setiap percobaan login menggunakan Machine Learning untuk mendeteksi perilaku mencurigakan.
-- **Secure Password Reset**: Token Argon2id, deteksi link kadaluarsa, dan kemampuan admin untuk menginisiasi reset langsung dari dashboard.
-- **Context-Aware Rate Limiting**: Pembatasan percobaan login/reset yang cerdas berdasarkan kombinasi konteks, email, dan IP.
-- **Device Fingerprinting**: Melacak dan memverifikasi perangkat yang dipercaya.
-- **Automated setup**: Script `setup.sh` yang otomatis menyiapkan seluruh lingkungan (Docker, .env, Keys, Migrations).
+### Fitur Utama
 
----
+- Penilaian Risiko AI: Analisis perilaku real-time menggunakan algoritma Isolation Forest untuk mendeteksi anomali.
+- Autentikasi Adaptif: Kontrol alur dinamis (Izinkan, OTP, Blokir) berdasarkan penilaian risiko yang granular.
+- Keamanan Identitas Lanjutan: Implementasi hashing Argon2id, protokol reset kata sandi yang aman, dan fingerprinting perangkat.
+- Pembatasan Laju Berbasis Konteks: Kontrol lalu lintas cerdas berdasarkan konteks pengguna, reputasi IP, dan upaya login.
+- Infrastruktur Terotomatisasi: Deployment berbasis kontainer menggunakan Docker dengan skrip inisialisasi otomatis.
 
-## 🛠️ Persyaratan Sistem
+## Arsitektur Sistem
 
-- **Docker Desktop** (atau Docker Engine + Compose di Linux)
-- **Koneksi Internet** (untuk build image pertama kali)
-- **PHP 8.4+** (didukung otomatis di dalam container)
+Proyek ini dibagi menjadi layanan-layanan khusus:
 
----
+- Identity Server (Laravel): Menangani logika autentikasi inti, manajemen pengguna, dan kontrol sesi.
+- Security Service (FastAPI): Microservice berperforma tinggi yang didedikasikan untuk inferensi AI dan pemodelan risiko.
+- Infrastruktur: Diorkestrasi melalui Docker Compose, menggunakan MySQL 8.0 untuk persistensi dan Redis 7 untuk caching berkecepatan tinggi serta manajemen antrean.
 
-## ⚙️ Cara Instalasi (Local Development)
+## Memulai
 
-Hanya satu langkah untuk menjalankan semuanya:
+### Prasyarat
 
-```bash
-chmod +x setup.sh
-./setup.sh
-```
+- Docker Desktop atau Docker Engine 24.0+
+- Docker Compose V2
+- Git
 
-**Apa yang dilakukan script ini?**
-1. Membuat file `.env` dari `.env.example` jika belum ada.
-2. Membangun (build) Docker images.
-3. Menjalankan database dan Redis.
-4. Instalasi dependensi Composer secara aman.
-5. Generate `APP_KEY` dan sinkronisasi `AI_RISK_API_KEY` untuk keamanan API.
-6. Menjalankan migrasi database.
+### Instalasi Terotomatisasi
 
----
+Proyek ini menyertakan skrip penyiapan komprehensif yang mengotomatiskan konfigurasi lingkungan, instalasi dependensi, dan pembuatan kunci keamanan.
 
-## 🌐 Panduan Deployment ke VPS (Production)
+1. Clone repositori:
+   ```bash
+   git clone https://github.com/mixudev/mixuauth.git
+   cd mixuauth
+   ```
 
-Ikuti langkah-langkah ini untuk deploy sistem ini di VPS (Ubuntu 22.04/24.04 disarankan):
+2. Jalankan skrip setup:
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
+   ```
 
-### 1. Persiapan Server
-Instal Docker dan Docker Compose lokaly di server:
-```bash
-# Update sistem
-sudo apt update && sudo apt upgrade -y
+### Instalasi Manual
 
-# Instal Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-```
+Untuk lingkungan yang memerlukan kontrol manual:
 
-### 2. Clone & Konfigurasi
-```bash
-git clone https://github.com/your-repo/ai-auth-system.git
-cd ai-auth-system
-```
+1. Siapkan file environment:
+   ```bash
+   cp identity-server/.env.example identity-server/.env
+   cp security-service/.env.example security-service/.env
+   ```
 
-### 3. Konfigurasi Environment Production
-Pastikan Anda mengubah nilai-nilai berikut di `identity-server/.env` untuk keamanan:
-- `APP_ENV=production`
-- `APP_DEBUG=false`
-- `APP_URL=https://nama-domain-anda.com` (Sangat Penting untuk link Reset Password)
-- `DB_PASSWORD` & `DB_ROOT_PASSWORD` (Gunakan password yang kuat)
-- `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD` (Gunakan provider asli seperti Resend/Amazon SES)
+2. Bangun dan inisialisasi kontainer:
+   ```bash
+   docker compose build
+   docker compose up -d db redis
+   ```
 
-### 4. Jalankan Setup Otomatis
-```bash
-chmod +x setup.sh
-./setup.sh
-```
+3. Instal dependensi dan buat kunci keamanan:
+   ```bash
+   docker compose run --rm -u root app composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
+   docker compose run --rm app php artisan key:generate
+   docker compose run --rm app php artisan ai:generate-key
+   ```
 
-### 5. Konfigurasi SSL (Nginx & Certbot)
-Sangat disarankan menggunakan Nginx di server host sebagai Reverse Proxy ke port 8080:
+4. Jalankan migrasi database:
+   ```bash
+   docker compose run --rm app php artisan migrate --force
+   ```
 
-```bash
-# Instal Nginx & Certbot
-sudo apt install nginx certbot python3-certbot-nginx -y
+## Konfigurasi
 
-# Konfigurasi Virtual Host Nginx ke http://localhost:8080
-# Lalu aktifkan SSL
-sudo certbot --nginx -d nama-domain-anda.com
-```
+### Deployment Produksi
 
----
+Sebelum melakukan deployment ke lingkungan produksi, pastikan konfigurasi berikut diterapkan di `identity-server/.env`:
 
-## 🛠️ Instalasi Manual (Tanpa Script Setup)
+- APP_ENV: Atur ke `production`
+- APP_DEBUG: Atur ke `false`
+- APP_URL: Atur ke domain yang telah diverifikasi (diperlukan untuk reset kata sandi yang aman)
+- MAIL_DRIVER: Konfigurasikan penyedia SMTP yang andal untuk pengiriman OTP
 
-Jika Anda ingin melakukan instalasi secara manual langkah demi langkah, ikuti urutan berikut agar sistem berjalan tanpa error:
+### Keamanan API Internal
 
-### 1. Persiapan File Environment
-```bash
-cp identity-server/.env.example identity-server/.env
-cp security-service/.env.example security-service/.env
-```
-
-### 2. Inisialisasi Direktori Storage (Wajib)
-Laravel membutuhkan struktur folder ini agar tidak muncul error `cache path`:
-```bash
-mkdir -p identity-server/storage/framework/{sessions,views,cache}
-mkdir -p identity-server/storage/logs
-chmod -R 777 identity-server/storage
-```
-
-### 3. Build & Jalankan Database
-```bash
-docker compose build
-docker compose up -d db redis
-# Tunggu sekitar 15-20 detik agar database siap
-```
-
-### 4. Instal Dependensi PHP
-Gunakan user `root` dan abaikan pengecekan platform untuk kompatibilitas ekstensi:
-```bash
-docker compose run --rm -u root app composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
-docker compose run --rm -u root app chown -R www-data:www-data vendor storage
-```
-
-### 5. Generate Keys
-```bash
-# Generate APP_KEY
-docker compose run --rm app php artisan key:generate
-
-# Generate & Sinkronisasi AI API Key
-docker compose run --rm app php artisan ai:generate-key
-```
-
-### 6. Migrasi Database & Jalankan
-```bash
-docker compose run --rm app php artisan migrate --force
-docker compose up -d
-```
-
-## 🔐 Manajemen API Key
-
-Sistem ini menggunakan kunci rahasia untuk komunikasi antara Laravel dan AI Service. Anda bisa me-rotate kunci ini kapan saja:
+Komunikasi antara Identity Server dan Security Service dilindungi melalui kunci API internal. Kunci ini dapat dirotasi menggunakan:
 
 ```bash
 docker compose run --rm app php artisan ai:generate-key
 docker compose restart fastapi-risk
 ```
-*Perintah ini akan memperbarui kedua file `.env` secara otomatis.*
+
+## Pemantauan dan Pemeliharaan
+
+### Log Layanan
+
+Pantau kesehatan aplikasi dan peristiwa keamanan melalui output standar:
+
+- Logika Aplikasi: `docker compose logs -f app`
+- Audit Keamanan: `docker compose exec app tail -f storage/logs/security.log`
+- Inferensi AI: `docker compose logs -f fastapi-risk`
+
+### Pemeliharaan Model AI
+
+Model Security Service dapat dilatih ulang menggunakan data login lokal untuk meningkatkan akurasi deteksi. Instruksi mendetail tersedia di direktori `security-service/training/`.
+
+## Lisensi
+
+Proyek ini dilisensikan di bawah Lisensi MIT - lihat file LICENSE untuk detailnya.
 
 ---
 
-## 📊 Monitoring & Log
-
-- **Log Aplikasi**: `docker compose logs -f app`
-- **Log Keamanan**: `docker compose exec app tail -f storage/logs/security.log`
-- **Log AI Service**: `docker compose logs -f fastapi-risk`
-
----
-
-## 🤝 Kontribusi
-
-Sistem ini masih dalam pengembangan. Jika menemukan celah keamanan, silakan baca `security_audit.md` untuk perbaikan yang disarankan.
-
----
-*Developed with Security-First Mindset*
+Dikembangkan oleh Tim Arsitektur Keamanan MixuDev.
