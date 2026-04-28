@@ -1,12 +1,17 @@
 <div align="center">
 
-# MIXUAUTH IDENTITY SERVER
-### Enterprise Access Management & AI-Driven Risk Assessment
-**Version 2.0.0 (LTS)**
+<p align="center">
+  <img src="https://img.shields.io/badge/MixuAuth-v2.0.0-00a396?style=for-the-badge&labelColor=0d1117" alt="Version">
+  <img src="https://img.shields.io/badge/Identity_Server-LTS-00a396?style=for-the-badge&labelColor=0d1117" alt="Status">
+</p>
 
----
+<h1 align="center">◈ MIXUAUTH IDENTITY SERVER ◈</h1>
 
 **Sistem Manajemen Identitas Terpusat Berbasis Kecerdasan Buatan untuk Ekosistem Aplikasi Modern**
+
+[![Laravel](https://img.shields.io/badge/Laravel-13.x-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
+[![License](https://img.shields.io/badge/License-MIT-22C55E?style=flat-square)](LICENSE)
 
 </div>
 
@@ -14,7 +19,7 @@
 
 MixuAuth adalah platform Identity Provider (IdP) yang dibangun di atas kerangka kerja Laravel 13. Sistem ini dirancang untuk menangani seluruh siklus hidup pengguna, mulai dari pendaftaran, autentikasi multifaktor, hingga otorisasi lintas aplikasi (Single Sign-On). Perbedaan utama MixuAuth terletak pada integrasi mesin AI yang mengevaluasi anomali login secara dinamis untuk mencegah akses ilegal sebelum terjadi.
 
----
+
 
 ## 2. Arsitektur Sistem dan Komponen Teknis
 
@@ -37,7 +42,7 @@ Sistem ini beroperasi dengan membagi beban kerja ke dalam beberapa lapisan layan
 *   **Speed Layer & Broker**: Redis 7.2 untuk session management, rate limiting, dan background jobs.
 *   **Reverse Proxy**: Nginx untuk SSL termination dan load balancing.
 
----
+
 
 ## 3. Fitur Keamanan Tingkat Lanjut
 
@@ -48,21 +53,21 @@ Sistem mengimplementasikan protokol keamanan berlapis:
 *   **Protection against Brute Force**: Implementasi rate limiting bertingkat berdasarkan IP address dan user identifier.
 *   **CSRF & XSS Protection**: Konfigurasi Content Security Policy (CSP) yang ketat dan proteksi token anti-forgery pada setiap endpoint stateful.
 
----
+
 
 ## 4. Dokumentasi Endpoint Utama
 
 Akses API diatur melalui prefix `/api/v2/`. Berikut adalah beberapa endpoint inti:
 
 | Method | Endpoint | Fungsi | Proteksi |
-| :--- | :--- | :--- | :--- |
+| : | : | : | : |
 | POST | `/api/auth/login` | Autentikasi utama & pengecekan risiko | Public / Rate-limited |
 | POST | `/api/auth/verify-otp` | Verifikasi tantangan MFA | Session-bound |
 | GET | `/api/user/profile` | Mengambil profil pengguna aktif | Bearer Token / Session |
 | POST | `/api/oauth/token` | Penerbitan token akses OAuth2 | Client Secret |
 | POST | `/api/auth/logout` | Terminasi sesi global & webhook | Auth Required |
 
----
+
 
 ## 5. Parameter Konfigurasi Lingkungan (.env)
 
@@ -83,7 +88,7 @@ Konfigurasi krusial untuk operasional sistem:
 *   `CACHE_STORE`: Disarankan `redis` untuk performa optimal.
 *   `QUEUE_CONNECTION`: Disarankan `redis` untuk memproses pengiriman OTP di latar belakang.
 
----
+
 
 ## 6. Prosedur Instalasi dan Deployment
 
@@ -112,7 +117,7 @@ docker compose exec app php artisan config:cache
 docker compose exec app php artisan logs:clear
 ```
 
----
+
 
 ## 7. Troubleshooting
 
@@ -120,7 +125,7 @@ docker compose exec app php artisan logs:clear
 *   **Sesi Invalid**: Biasanya disebabkan oleh ketidaksesuaian `APP_KEY` setelah rotasi. Jalankan `cache:clear` setelah perubahan kunci.
 *   **Gagal Kirim OTP**: Periksa status antrean pada Redis menggunakan `php artisan queue:monitor`.
 
----
+
 
 ## 8. Lisensi dan Hak Cipta
 
@@ -128,7 +133,7 @@ Dokumentasi pengembangan dapat ditemukan di [CONTRIBUTING.md](CONTRIBUTING.md). 
 
 Proyek ini dilisensikan di bawah **Lisensi MIT**.
 
----
+
 <div align="center">
 Copyright (c) 2026 MixuDev Security Architecture Team.
 Pusat Inovasi Keamanan dan Identitas Digital.
