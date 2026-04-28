@@ -26,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Laravel\Passport\Http\Controllers\ApproveAuthorizationController;
 use Laravel\Passport\Http\Controllers\AuthorizationController as BaseAuthorizationController;
 use Laravel\Passport\Http\Controllers\DenyAuthorizationController;
@@ -138,7 +139,7 @@ class OAuthController
                 $user->id
             );
 
-            return redirect()->route('sso.access-denied')->with([
+            return redirect()->to(URL::temporarySignedRoute('sso.access-denied', now()->addMinutes(5)))->with([
                 'denied_reason'  => 'client_inactive',
                 'app_name'       => $ssoClient->name,
             ]);
@@ -232,12 +233,9 @@ class OAuthController
                     $user->id
                 );
 
-                return redirect()->route('sso.access-denied')->with([
+                return redirect()->to(URL::temporarySignedRoute('sso.access-denied', now()->addMinutes(5)))->with([
                     'denied_reason'  => 'access_area',
                     'app_name'       => $ssoClient->name,
-                    'required_areas' => $requiredAreas,
-                    'user_areas'     => $userAreaSlugs,
-                    'missing_areas'  => $missingAreaSlugs->toArray(),
                 ]);
             }
         }

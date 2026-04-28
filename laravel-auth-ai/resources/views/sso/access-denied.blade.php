@@ -1,13 +1,27 @@
 @extends('layouts.auth')
 
-@section('title', 'Akses Ditolak')
-@section('sidebar_headline', 'Akses Ditolak.')
-@section('sidebar_sub', 'Anda tidak memiliki izin untuk mengakses aplikasi ini.')
+@section(
+    'title', 
+    'Akses Ditolak')
 
-@section('auth_title', 'Akses Tidak Diizinkan')
-@section('auth_subtitle', 'Akun Anda tidak memenuhi syarat akses untuk aplikasi ini.')
+@section(
+    'sidebar_headline', 
+    'Akses Ditolak.')
+
+@section(
+    'sidebar_sub', 
+    'Anda tidak memiliki izin untuk mengakses aplikasi ini.')
+
+@section(
+    'auth_title', 
+    'Akses Tidak Diizinkan')
+
+@section(
+    'auth_subtitle', 
+    'Akun Anda tidak memenuhi syarat akses untuk aplikasi ini.')
 
 @section('auth_content')
+
 <div style="text-align: center; margin-bottom: 24px;">
 
     {{-- Icon --}}
@@ -46,12 +60,12 @@
             $missingAreas  = session('missing_areas', []);
         @endphp
 
-        <div style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 14px 16px; text-align: left; margin-bottom: 16px;">
-            <p style="font-size: 13px; color: #b91c1c; font-weight: 600; margin-bottom: 10px;">
-                <i class="fa-solid fa-shield-halved" style="margin-right: 6px;"></i>Area Akses Tidak Memenuhi Syarat
-            </p>
-            <p style="font-size: 12px; color: var(--auth-text); margin-bottom: 10px;">
-                Aplikasi <strong>{{ $appName }}</strong> membutuhkan izin akses yang belum dimiliki akun Anda.
+        <div style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); padding: 14px 16px; text-align: left; margin-bottom: 16px;">
+            <p style="font-size: 13px; color: #b91c1c; font-weight: 600; margin-bottom: 10px;" class="text-center">
+                <i class="fa-solid fa-shield-halved mr-2"></i>Area Akses Tidak Memenuhi Syarat
+            </p>    
+            <p style="font-size: 12px; color: var(--auth-text); margin-bottom: 10px;" class="text-center">
+                 <strong>{{ $appName }}</strong> membutuhkan izin akses yang belum dimiliki akun Anda.
             </p>
 
             @if($requiredAreas->count() > 0)
@@ -86,20 +100,32 @@
     @endif
 
     {{-- Tombol kembali --}}
-    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 8px;">
+    <div class="flex gap-3 mt-3">
+
+        <!-- Kembali (outline) -->
         <a href="{{ url()->previous() !== url()->current() ? url()->previous() : '/' }}"
-           class="btn-primary"
-           style="display: block; text-align: center; text-decoration: none;">
-            <i class="fa-solid fa-arrow-left" style="margin-right: 6px;"></i>Kembali
+        class="flex-1 text-center text-xs font-medium border border-slate-700 text-slate-700 py-3">
+            <i class="fa-solid fa-arrow-left mr-1"></i>
+            Kembali
         </a>
 
         @auth
+        <!-- Dashboard (solid) -->
         <a href="{{ route('dashboard') }}"
-           style="display: block; text-align: center; font-size: 13px; color: var(--auth-text); text-decoration: none; padding: 8px; opacity: 0.7; transition: opacity 0.2s;"
-           onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+        class="flex-1 text-center text-xs font-semibold bg-slate-700 text-white py-3">
             Ke Dashboard
         </a>
         @endauth
+
+    </div>
+
+    <!-- Hubungi Admin -->
+    <div class="mt-3 text-center ">
+        <a href="https://wa.me/62"
+        target="_blank"
+        class="text-xs text-slate-700 font-medium underline">
+            Hubungi Admin
+        </a>
     </div>
 
 </div>

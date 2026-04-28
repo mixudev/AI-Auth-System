@@ -195,7 +195,7 @@
             // ─── HEALTH SIGNAL
             async function toggleHealth() {
                 try {
-                    const res = await fetch('/dashboard/api/system/health');
+                    const res = await fetch('/admin/security/health');
                     const data = await res.json();
                     
                     let detailsHtml = '<div class="text-left space-y-2 mt-4 px-1 max-w-[280px] mx-auto">';
@@ -232,7 +232,7 @@
 
             async function fetchHealth() {
                 try {
-                    const res = await fetch('/dashboard/api/system/health');
+                    const res = await fetch('/admin/security/health');
                     const data = await res.json();
                     
                     const dot = document.getElementById('healthIndicatorDot');

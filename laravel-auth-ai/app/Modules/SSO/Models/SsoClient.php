@@ -10,6 +10,7 @@ class SsoClient extends Model
 {
     protected $fillable = [
         'name',
+        'client_type',
         'oauth_client_id',
         'webhook_url',
         'webhook_secret',
@@ -34,6 +35,22 @@ class SsoClient extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Check if client is a public client (SPA/Native)
+     */
+    public function isPublic(): bool
+    {
+        return $this->client_type === 'public';
+    }
+
+    /**
+     * Check if client is a confidential client (Backend server)
+     */
+    public function isConfidential(): bool
+    {
+        return $this->client_type === 'confidential';
     }
 
     /*

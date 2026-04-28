@@ -86,3 +86,24 @@ if (!hash_equals($signature, $request->header('X-SSO-Signature'))) {
 }
 ```
 Menerima *webhook* yang valid berarti klien harus segera menghapus *session* lokal milik *user* dengan ID/Email tersebut.
+
+## 4. Panduan Khusus Public Client (SPA React/Vue & Native Mobile)
+
+Aplikasi jenis ini **TIDAK memiliki backend**, sehingga rentan jika menyimpan `client_secret`. Sistem SSO kita mendukung ekosistem ini secara penuh menggunakan skema **Public Client**.
+
+### A. Pendaftaran
+Saat didaftarkan oleh Admin SSO, pastikan **Tipe Klien** dipilih sebagai **Public (Tanpa Secret)**. Dengan tipe ini, server tidak akan memunculkan *Client Secret*.
+
+### B. Otentikasi (Otorisasi)
+Klien jenis ini **DIWAJIBKAN** untuk menggunakan metode **PKCE (Proof Key for Code Exchange)** secara penuh.
+1. Saat redirect ke `/oauth/authorize`, sertakan parameter `code_challenge` (hasil hashing S256 dari `code_verifier`) dan `code_challenge_method=S256`.
+2. Saat menukar token ke `/oauth/token`, **tidak perlu** mengirimkan `client_secret`. Cukup sertakan `client_id` dan `code_verifier`.
+
+### C. Keamanan Penyimpanan Token (Anti-XSS)
+- **SANGAT DILARANG** menyimpan *Access Token* di dalam `localStorage` atau `sessionStorage`. Ini akan membocorkan token Anda ke skrip XSS jahat.
+- Simpan *Access Token* murni hanya di dalam memori/state (misal: Redux/Zustand di React).
+- Untuk *Refresh Token*, simpan di dalam **HttpOnly Cookie** jika Anda masih menggunakan pola *Backend-for-Frontend* (BFF), atau atur umur *Access Token* sependek mungkin.
+
+### D. Logout & Webhook Bypass
+Karena SPA murni tidak bisa menerima HTTP Webhook (tidak ada IP Publik), webhook *Global Logout* tidak akan berguna baginya.
+**Solusi:** SPA akan otomatis ter-logout ketika *Access Token*-nya *expired* (misal: 10 menit) dan saat ia mencoba menukarkan *Refresh Token*, server SSO menolaknya (HTTP 401) karena admin sudah melakukan *revoke* token secara global. SPA harus merespons HTTP 401 dengan menghapus status login *user* dan me-redirect ke halaman utama.

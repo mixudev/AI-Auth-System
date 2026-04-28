@@ -54,7 +54,14 @@
                                     </div>
                                     <div>
                                         <div class="font-bold text-slate-800 dark:text-slate-200">{{ $client->name }}</div>
-                                        <div class="text-[11px] text-slate-400 font-mono mt-0.5" title="Client ID">ID: {{ Str::limit($client->oauth_client_id, 12) }}</div>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            @if($client->isConfidential())
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-500/20" title="Backend Server"><i class="fa-solid fa-server"></i> Confidential</span>
+                                            @else
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-500/20" title="SPA / Native App"><i class="fa-solid fa-mobile-screen"></i> Public</span>
+                                            @endif
+                                            <div class="text-[11px] text-slate-400 font-mono" title="Client ID">ID: {{ Str::limit($client->oauth_client_id, 12) }}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -123,7 +130,7 @@
                                     <!-- Generate Token Button -->
                                     <form id="form-regen-{{ $client->id }}" action="{{ route('sso.clients.generate-token', $client) }}" method="POST" class="inline-block">
                                         @csrf
-                                        <button type="button" onclick="confirmRegenerate('form-regen-{{ $client->id }}')"
+                                        <button type="button" onclick="confirmRegenerate('form-regen-{{ $client->id }}', '{{ $client->client_type }}')"
                                                 class="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20 transition-colors"
                                                 title="Regenerate Token">
                                             <i class="fa-solid fa-arrows-rotate text-xs"></i>
@@ -173,6 +180,27 @@
             <div>
                 <label for="create_name">Nama Aplikasi</label>
                 <input type="text" id="create_name" name="name" required placeholder="Contoh: Portal Akademik">
+            </div>
+            <div>
+                <label class="mb-2 block">Tipe Klien</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="client_type" value="confidential" checked class="peer sr-only">
+                        <div class="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 dark:peer-checked:border-indigo-500 transition-all">
+                            <i class="fa-solid fa-server text-indigo-500 mb-2 text-xl"></i>
+                            <h4 class="font-bold text-sm text-slate-800 dark:text-slate-200">Server Backend</h4>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">Laravel, Node.js, dsb. (Diberikan Secret Key)</p>
+                        </div>
+                    </label>
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="client_type" value="public" class="peer sr-only">
+                        <div class="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/20 dark:peer-checked:border-emerald-500 transition-all">
+                            <i class="fa-solid fa-mobile-screen text-emerald-500 mb-2 text-xl"></i>
+                            <h4 class="font-bold text-sm text-slate-800 dark:text-slate-200">SPA / Native</h4>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">React, Vue, Android. (PKCE, Tanpa Secret)</p>
+                        </div>
+                    </label>
+                </div>
             </div>
             <div>
                 <div class="flex items-center justify-between mb-1.5">
@@ -276,6 +304,14 @@
         </div>
 
         <!-- Client Secret -->
+        @if(session('client_type') === 'public')
+        <div>
+            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">OAuth Client Secret</label>
+            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-500 dark:text-slate-400">
+                <i class="fa-solid fa-info-circle mr-1"></i> Tipe Klien <b>Public</b> tidak diberikan Client Secret. Gunakan metode otentikasi PKCE untuk klien ini.
+            </div>
+        </div>
+        @else
         <div>
             <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">OAuth Client Secret</label>
             <div class="relative">
@@ -285,6 +321,7 @@
                 </button>
             </div>
         </div>
+        @endif
 
         <!-- Webhook Secret -->
         <div>
@@ -357,10 +394,14 @@
         });
     }
 
-    function confirmRegenerate(formId) {
+    function confirmRegenerate(formId, clientType) {
+        let desc = clientType === 'public' 
+            ? 'PERINGATAN! Klien bertipe Public tidak memiliki OAuth Secret. Tindakan ini hanya akan mereset Webhook Secret. Lanjutkan?' 
+            : 'PERINGATAN! Ini akan mereset Client Secret dan Webhook Secret. Integrasi yang sedang berjalan akan putus hingga rahasia baru dipasang di aplikasi klien. Lanjutkan?';
+
         AppPopup.confirm({
             title: 'Regenerate Token?',
-            description: 'PERINGATAN! Ini akan mereset Client Secret dan Webhook Secret. Integrasi yang sedang berjalan akan putus hingga rahasia baru dipasang di aplikasi klien. Lanjutkan?',
+            description: desc,
             confirmText: 'Ya, Regenerate',
             onConfirm: () => document.getElementById(formId).submit()
         });

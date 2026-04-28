@@ -37,6 +37,7 @@ class SsoClientController
     {
         $validated = $request->validate([
             'name'        => 'required|string|max:255',
+            'client_type' => 'required|in:confidential,public',
             'protocol'    => 'required|in:http://,https://',
             'domain'      => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
@@ -51,11 +52,13 @@ class SsoClientController
         $webhookUrl = "{$baseDomain}/api/sso/webhook";
 
         try {
+            $isConfidential = $validated['client_type'] === 'confidential';
+
             // Buat OAuth client baru di Passport
             $oauthClient = $this->clientRepository->createAuthorizationCodeGrantClient(
                 $validated['name'],
                 [$redirectUri], // redirectUris (array)
-                true // confidential
+                $isConfidential // confidential (false for SPA/Public)
             );
             
             // Assign provider directly if needed
@@ -66,6 +69,7 @@ class SsoClientController
             // Simpan ke sso_clients
             $ssoClient = SsoClient::create([
                 'name'            => $validated['name'],
+                'client_type'     => $validated['client_type'],
                 'oauth_client_id' => (string) $oauthClient->id,
                 'webhook_url'     => $webhookUrl,
                 'webhook_secret'  => $webhookSecret,
@@ -83,8 +87,9 @@ class SsoClientController
             return redirect()
                 ->route('sso.clients.index')
                 ->with('credentials_modal', true)
+                ->with('client_type', $validated['client_type'])
                 ->with('client_id', $oauthClient->id)
-                ->with('client_secret', $oauthClient->plainSecret)
+                ->with('client_secret', $isConfidential ? $oauthClient->plainSecret : null)
                 ->with('webhook_secret', $webhookSecret);
 
         } catch (\Throwable $e) {
@@ -118,11 +123,10 @@ class SsoClientController
             if ($client->oauth_client_id) {
                 $oauthClient = $this->clientRepository->find($client->oauth_client_id);
                 if ($oauthClient) {
-                    $this->clientRepository->update(
-                        $oauthClient,
-                        $validated['name'],
-                        [$redirectUri]
-                    );
+                    $oauthClient->forceFill([
+                        'name' => $validated['name'],
+                        'redirect_uris' => [$redirectUri]
+                    ])->save();
                 }
             }
 
@@ -153,7 +157,7 @@ class SsoClientController
             if ($client->oauth_client_id) {
                 $oauthClient = $this->clientRepository->find($client->oauth_client_id);
                 if ($oauthClient) {
-                    $this->clientRepository->delete($oauthClient);
+                    $oauthClient->delete();
                 }
             }
 
@@ -177,15 +181,19 @@ class SsoClientController
     public function generateToken(SsoClient $client): RedirectResponse
     {
         try {
-            $newOAuthSecret = Str::random(40);
-            
-            if ($client->oauth_client_id) {
-                DB::table('oauth_clients')
-                    ->where('id', $client->oauth_client_id)
-                    ->update([
-                        'secret' => $newOAuthSecret,
-                        'updated_at' => now(),
-                    ]);
+            $newOAuthSecret = null;
+
+            if ($client->isConfidential()) {
+                $newOAuthSecret = Str::random(40);
+                
+                if ($client->oauth_client_id) {
+                    DB::table('oauth_clients')
+                        ->where('id', $client->oauth_client_id)
+                        ->update([
+                            'secret' => $newOAuthSecret,
+                            'updated_at' => now(),
+                        ]);
+                }
             }
 
             $newWebhookSecret = SsoClient::generateWebhookSecret();
@@ -197,6 +205,7 @@ class SsoClientController
             return redirect()
                 ->route('sso.clients.index')
                 ->with('credentials_modal', true)
+                ->with('client_type', $client->client_type)
                 ->with('client_id', $client->oauth_client_id)
                 ->with('client_secret', $newOAuthSecret)
                 ->with('webhook_secret', $newWebhookSecret);
@@ -285,15 +294,15 @@ class SsoClientController
     {
         // Semua access area yang aktif
         $allAreas = AccessArea::where('is_active', true)
+            ->withCount('users')
             ->orderBy('name')
             ->get();
 
         // Area yang sudah di-assign ke client ini
         $assignedIds = $client->accessAreas()->pluck('access_areas.id')->toArray();
 
-        return view('admin.sso.clients.access-areas', compact('client', 'allAreas', 'assignedIds'));
-    }
-
+        return view('admin.sso.clients.access-areas.index', compact('client', 'allAreas', 'assignedIds'));
+    }  
     /**
      * Sync access areas client (replace semua dengan yang baru).
      * POST /dashboard/sso/clients/{client}/access-areas

@@ -55,7 +55,7 @@ Route::middleware(['web'])->group(function () {
     // Halaman akses ditolak (area mismatch / client inactive)
     Route::get('/sso/access-denied', function () {
         return view('sso.access-denied');
-    })->name('sso.access-denied');
+    })->name('sso.access-denied')->middleware(['auth', 'signed']);
 });
 
 

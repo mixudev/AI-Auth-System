@@ -193,7 +193,7 @@ class WebAuthController extends Controller
 
     private function redirectAfterAuthentication(Request $request, string $message): RedirectResponse
     {
-        $response    = redirect()->route('dashboard')->with('success', $message);
+        $response    = redirect()->intended(route('dashboard'))->with('success', $message);
         $deviceToken = $request->cookie(DeviceIdentifierMiddleware::COOKIE_NAME);
 
         if (is_string($deviceToken) && $deviceToken !== '') {
