@@ -1,117 +1,135 @@
-# MixuAuth: Sistem Autentikasi Berbasis AI
+<div align="center">
 
-MixuAuth adalah sistem manajemen identitas dan autentikasi yang tangguh berbasis Laravel 11/12, terintegrasi dengan microservice Penilaian Risiko berbasis AI yang ditenagai oleh FastAPI. Sistem ini menyediakan deteksi ancaman proaktif, alur autentikasi adaptif, dan arsitektur yang mengutamakan keamanan untuk aplikasi web modern.
-
-## Ikhtisar Teknis
-
-Sistem ini memanfaatkan Machine Learning untuk mengevaluasi upaya login secara real-time, memberikan skor risiko berdasarkan pola perilaku. Bergantung pada risiko yang dihitung, sistem secara dinamis menyesuaikan tantangan autentikasi—mengizinkan akses langsung, memerlukan autentikasi multifaktor (OTP), atau memblokir aktivitas mencurigakan sepenuhnya.
-
-### Fitur Utama
-
-- Penilaian Risiko AI: Analisis perilaku real-time menggunakan algoritma Isolation Forest untuk mendeteksi anomali.
-- Autentikasi Adaptif: Kontrol alur dinamis (Izinkan, OTP, Blokir) berdasarkan penilaian risiko yang granular.
-- Keamanan Identitas Lanjutan: Implementasi hashing Argon2id, protokol reset kata sandi yang aman, dan fingerprinting perangkat.
-- Pembatasan Laju Berbasis Konteks: Kontrol lalu lintas cerdas berdasarkan konteks pengguna, reputasi IP, dan upaya login.
-- Infrastruktur Terotomatisasi: Deployment berbasis kontainer menggunakan Docker dengan skrip inisialisasi otomatis.
-
-## Arsitektur Sistem
-
-Proyek ini dibagi menjadi layanan-layanan khusus:
-
-- Identity Server (Laravel): Menangani logika autentikasi inti, manajemen pengguna, dan kontrol sesi.
-- Security Service (FastAPI): Microservice berperforma tinggi yang didedikasikan untuk inferensi AI dan pemodelan risiko.
-- Infrastruktur: Diorkestrasi melalui Docker Compose, menggunakan MySQL 8.0 untuk persistensi dan Redis 7 untuk caching berkecepatan tinggi serta manajemen antrean.
-
-## Memulai
-
-### Prasyarat
-
-- Docker Desktop atau Docker Engine 24.0+
-- Docker Compose V2
-- Git
-
-### Instalasi Terotomatisasi
-
-Proyek ini menyertakan skrip penyiapan komprehensif yang mengotomatiskan konfigurasi lingkungan, instalasi dependensi, dan pembuatan kunci keamanan.
-
-1. Clone repositori:
-   ```bash
-   git clone https://github.com/mixudev/mixuauth.git
-   cd mixuauth
-   ```
-
-2. Jalankan skrip setup:
-   ```bash
-   chmod +x setup.sh
-   ./setup.sh
-   ```
-
-### Instalasi Manual
-
-Untuk lingkungan yang memerlukan kontrol manual:
-
-1. Siapkan file environment:
-   ```bash
-   cp identity-server/.env.example identity-server/.env
-   cp security-service/.env.example security-service/.env
-   ```
-
-2. Bangun dan inisialisasi kontainer:
-   ```bash
-   docker compose build
-   docker compose up -d db redis
-   ```
-
-3. Instal dependensi dan buat kunci keamanan:
-   ```bash
-   docker compose run --rm -u root app composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
-   docker compose run --rm app php artisan key:generate
-   docker compose run --rm app php artisan ai:generate-key
-   ```
-
-4. Jalankan migrasi database:
-   ```bash
-   docker compose run --rm app php artisan migrate --force
-   ```
-
-## Konfigurasi
-
-### Deployment Produksi
-
-Sebelum melakukan deployment ke lingkungan produksi, pastikan konfigurasi berikut diterapkan di `identity-server/.env`:
-
-- APP_ENV: Atur ke `production`
-- APP_DEBUG: Atur ke `false`
-- APP_URL: Atur ke domain yang telah diverifikasi (diperlukan untuk reset kata sandi yang aman)
-- MAIL_DRIVER: Konfigurasikan penyedia SMTP yang andal untuk pengiriman OTP
-
-### Keamanan API Internal
-
-Komunikasi antara Identity Server dan Security Service dilindungi melalui kunci API internal. Kunci ini dapat dirotasi menggunakan:
-
-```bash
-docker compose run --rm app php artisan ai:generate-key
-docker compose restart fastapi-risk
-```
-
-## Pemantauan dan Pemeliharaan
-
-### Log Layanan
-
-Pantau kesehatan aplikasi dan peristiwa keamanan melalui output standar:
-
-- Logika Aplikasi: `docker compose logs -f app`
-- Audit Keamanan: `docker compose exec app tail -f storage/logs/security.log`
-- Inferensi AI: `docker compose logs -f fastapi-risk`
-
-### Pemeliharaan Model AI
-
-Model Security Service dapat dilatih ulang menggunakan data login lokal untuk meningkatkan akurasi deteksi. Instruksi mendetail tersedia di direktori `security-service/training/`.
-
-## Lisensi
-
-Proyek ini dilisensikan di bawah Lisensi MIT - lihat file LICENSE untuk detailnya.
+# MIXUAUTH IDENTITY SERVER
+### Enterprise Access Management & AI-Driven Risk Assessment
+**Version 2.0.0 (LTS)**
 
 ---
 
-Dikembangkan oleh Tim Arsitektur Keamanan MixuDev.
+**Sistem Manajemen Identitas Terpusat Berbasis Kecerdasan Buatan untuk Ekosistem Aplikasi Modern**
+
+</div>
+
+## 1. Pendahuluan
+
+MixuAuth adalah platform Identity Provider (IdP) yang dibangun di atas kerangka kerja Laravel 13. Sistem ini dirancang untuk menangani seluruh siklus hidup pengguna, mulai dari pendaftaran, autentikasi multifaktor, hingga otorisasi lintas aplikasi (Single Sign-On). Perbedaan utama MixuAuth terletak pada integrasi mesin AI yang mengevaluasi anomali login secara dinamis untuk mencegah akses ilegal sebelum terjadi.
+
+---
+
+## 2. Arsitektur Sistem dan Komponen Teknis
+
+Sistem ini beroperasi dengan membagi beban kerja ke dalam beberapa lapisan layanan khusus:
+
+### 2.1 Core Identity Engine (Laravel 13)
+*   **Framework**: Laravel 13.6.0 (Latest Release).
+*   **Engine Autentikasi**: Laravel Passport (OAuth2/OIDC) & Sanctum (Stateful API).
+*   **Hashing Kredensial**: Argon2id (Standard RFC 9106).
+*   **Runtime**: PHP 8.4-fpm-alpine.
+
+### 2.2 Security Intelligence (FastAPI)
+*   **Framework**: FastAPI (High-performance Python framework).
+*   **Model Machine Learning**: Isolation Forest (Anomaly Detection).
+*   **Komunikasi**: RESTful API dengan pengamanan internal API Key.
+*   **Runtime**: Python 3.11-slim.
+
+### 2.3 Infrastruktur Pendukung
+*   **Relational Database**: MySQL 8.0 dengan pengoptimalan indexing pada tabel audit.
+*   **Speed Layer & Broker**: Redis 7.2 untuk session management, rate limiting, dan background jobs.
+*   **Reverse Proxy**: Nginx untuk SSL termination dan load balancing.
+
+---
+
+## 3. Fitur Keamanan Tingkat Lanjut
+
+Sistem mengimplementasikan protokol keamanan berlapis:
+
+*   **Adaptive MFA**: Sistem secara otomatis mewajibkan One-Time Password (OTP) melalui WhatsApp atau Email hanya jika skor risiko AI melampaui ambang batas tertentu.
+*   **Device Binding**: Sesi login diikat secara unik ke kombinasi User-Agent dan ID Perangkat yang terenkripsi.
+*   **Protection against Brute Force**: Implementasi rate limiting bertingkat berdasarkan IP address dan user identifier.
+*   **CSRF & XSS Protection**: Konfigurasi Content Security Policy (CSP) yang ketat dan proteksi token anti-forgery pada setiap endpoint stateful.
+
+---
+
+## 4. Dokumentasi Endpoint Utama
+
+Akses API diatur melalui prefix `/api/v2/`. Berikut adalah beberapa endpoint inti:
+
+| Method | Endpoint | Fungsi | Proteksi |
+| :--- | :--- | :--- | :--- |
+| POST | `/api/auth/login` | Autentikasi utama & pengecekan risiko | Public / Rate-limited |
+| POST | `/api/auth/verify-otp` | Verifikasi tantangan MFA | Session-bound |
+| GET | `/api/user/profile` | Mengambil profil pengguna aktif | Bearer Token / Session |
+| POST | `/api/oauth/token` | Penerbitan token akses OAuth2 | Client Secret |
+| POST | `/api/auth/logout` | Terminasi sesi global & webhook | Auth Required |
+
+---
+
+## 5. Parameter Konfigurasi Lingkungan (.env)
+
+Konfigurasi krusial untuk operasional sistem:
+
+### Konfigurasi Dasar
+*   `APP_ENV`: (production/local) Menentukan mode operasional.
+*   `APP_KEY`: Kunci enkripsi utama (32 karakter).
+*   `APP_URL`: Alamat dasar server untuk pembentukan link reset password.
+
+### Konfigurasi Keamanan & AI
+*   `SECURITY_AI_KEY`: Token internal untuk akses ke Security Service.
+*   `SECURITY_RISK_THRESHOLD`: Ambang batas skor risiko (0.0 - 1.0) untuk memicu MFA.
+*   `SESSION_BIND_DEVICE`: (true/false) Mengaktifkan penguncian sesi ke perangkat.
+
+### Infrastruktur
+*   `DB_CONNECTION`: Disarankan `mysql`.
+*   `CACHE_STORE`: Disarankan `redis` untuk performa optimal.
+*   `QUEUE_CONNECTION`: Disarankan `redis` untuk memproses pengiriman OTP di latar belakang.
+
+---
+
+## 6. Prosedur Instalasi dan Deployment
+
+### Langkah 1: Persiapan Lingkungan
+Pastikan Docker dan Docker Compose telah terinstal pada host system.
+
+### Langkah 2: Inisialisasi Otomatis
+```bash
+# Menjalankan skrip setup menyeluruh
+./setup.sh
+```
+
+### Langkah 3: Verifikasi Layanan
+Pastikan seluruh kontainer dalam status 'Healthy':
+```bash
+docker compose ps
+```
+
+### Langkah 4: Pemeliharaan Rutin
+Perintah berikut harus dijalankan secara berkala untuk menjaga performa:
+```bash
+# Optimalisasi cache konfigurasi
+docker compose exec app php artisan config:cache
+
+# Pembersihan log lama (disarankan via Cron)
+docker compose exec app php artisan logs:clear
+```
+
+---
+
+## 7. Troubleshooting
+
+*   **Masalah Koneksi AI**: Pastikan `SECURITY_AI_URL` di `.env` mengarah ke nama container `fastapi-risk` di dalam jaringan Docker.
+*   **Sesi Invalid**: Biasanya disebabkan oleh ketidaksesuaian `APP_KEY` setelah rotasi. Jalankan `cache:clear` setelah perubahan kunci.
+*   **Gagal Kirim OTP**: Periksa status antrean pada Redis menggunakan `php artisan queue:monitor`.
+
+---
+
+## 8. Lisensi dan Hak Cipta
+
+Dokumentasi pengembangan dapat ditemukan di [CONTRIBUTING.md](CONTRIBUTING.md). Kebijakan privasi dan pelaporan bug keamanan ada di [SECURITY.md](SECURITY.md).
+
+Proyek ini dilisensikan di bawah **Lisensi MIT**.
+
+---
+<div align="center">
+Copyright (c) 2026 MixuDev Security Architecture Team.
+Pusat Inovasi Keamanan dan Identitas Digital.
+</div>
