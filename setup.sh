@@ -53,14 +53,14 @@ log_success "Docker tersedia."
 # ----------------------------------------------------------
 log_info "Memeriksa file konfigurasi..."
 
-if [ ! -f "laravel-auth-ai/.env" ]; then
-    log_warn "File laravel-auth-ai/.env tidak ditemukan. Menyalin dari .env.example..."
-    cp laravel-auth-ai/.env.example laravel-auth-ai/.env
+if [ ! -f "identity-server/.env" ]; then
+    log_warn "File identity-server/.env tidak ditemukan. Menyalin dari .env.example..."
+    cp identity-server/.env.example identity-server/.env
 fi
 
-if [ ! -f "ai-security/.env" ]; then
-    log_warn "File ai-security/.env tidak ditemukan. Menyalin dari .env.example..."
-    cp ai-security/.env.example ai-security/.env
+if [ ! -f "security-service/.env" ]; then
+    log_warn "File security-service/.env tidak ditemukan. Menyalin dari .env.example..."
+    cp security-service/.env.example security-service/.env
 fi
 
 if [ ! -f ".env" ]; then
@@ -77,7 +77,7 @@ log_info "Mengamankan kredensial sistem..."
 
 # Pastikan file .env ada sebelum di-sed
 [ -f ".env" ] || touch .env
-[ -f "laravel-auth-ai/.env" ] || touch laravel-auth-ai/.env
+[ -f "identity-server/.env" ] || touch identity-server/.env
 
 # 1. REDIS_PASSWORD
 CURRENT_REDIS_PWD=$(grep "^REDIS_PASSWORD=" .env | cut -d'=' -f2-)
@@ -93,10 +93,10 @@ if [ -z "$CURRENT_REDIS_PWD" ] || [ "$CURRENT_REDIS_PWD" = "" ]; then
     fi
     
     # Update Laravel .env
-    if grep -q "^REDIS_PASSWORD=" laravel-auth-ai/.env; then
-        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$NEW_REDIS_PWD|" laravel-auth-ai/.env
+    if grep -q "^REDIS_PASSWORD=" identity-server/.env; then
+        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$NEW_REDIS_PWD|" identity-server/.env
     else
-        echo "REDIS_PASSWORD=$NEW_REDIS_PWD" >> laravel-auth-ai/.env
+        echo "REDIS_PASSWORD=$NEW_REDIS_PWD" >> identity-server/.env
     fi
 fi
 
@@ -108,17 +108,17 @@ if [ -z "$CURRENT_MYSQL_ROOT" ] || [ "$CURRENT_MYSQL_ROOT" = "root_secure_9283_p
     sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" .env
     
     # Laravel .env might have it with a typo or correct name
-    sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" laravel-auth-ai/.env
-    sed -i "s|^MSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" laravel-auth-ai/.env
+    sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" identity-server/.env
+    sed -i "s|^MSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" identity-server/.env
 fi
 
 # 3. DB_PASSWORD
-CURRENT_DB_PWD=$(grep "^DB_PASSWORD=" laravel-auth-ai/.env | cut -d'=' -f2-)
+CURRENT_DB_PWD=$(grep "^DB_PASSWORD=" identity-server/.env | cut -d'=' -f2-)
 if [ -z "$CURRENT_DB_PWD" ] || [ "$CURRENT_DB_PWD" = "secret123" ] || [ "$CURRENT_DB_PWD" = "W9sLeP7T@x4RkM!2cHf" ] || [ "$CURRENT_DB_PWD" = "app_secure_7261_password_fsaA" ]; then
     log_info "Generating new DB_PASSWORD..."
     NEW_DB_PWD=$(generate_random_string 32)
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" .env
-    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" laravel-auth-ai/.env
+    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" identity-server/.env
 fi
 
 log_success "Kredensial keamanan telah diperbarui."
@@ -131,24 +131,24 @@ log_info "Membuat direktori..."
 mkdir -p docker/nginx
 mkdir -p docker/laravel
 mkdir -p docker/docs
-mkdir -p ai-security/app/models
-mkdir -p ai-security/logs
+mkdir -p security-service/app/models
+mkdir -p security-service/logs
 
 # Laravel Storage subdirectories
-mkdir -p laravel-auth-ai/storage/framework/sessions
-mkdir -p laravel-auth-ai/storage/framework/views
-mkdir -p laravel-auth-ai/storage/framework/cache
-mkdir -p laravel-auth-ai/storage/logs
-chmod -R 775 laravel-auth-ai/storage
+mkdir -p identity-server/storage/framework/sessions
+mkdir -p identity-server/storage/framework/views
+mkdir -p identity-server/storage/framework/cache
+mkdir -p identity-server/storage/logs
+chmod -R 775 identity-server/storage
 
 # Fix permission Passport OAuth keys — WAJIB 660/600, BUKAN 777
 # Laravel Passport menolak key dengan permission terlalu longgar (777)
-if [ -f "laravel-auth-ai/storage/oauth-private.key" ]; then
-    chmod 660 laravel-auth-ai/storage/oauth-private.key
+if [ -f "identity-server/storage/oauth-private.key" ]; then
+    chmod 660 identity-server/storage/oauth-private.key
     log_success "oauth-private.key permission diset ke 660."
 fi
-if [ -f "laravel-auth-ai/storage/oauth-public.key" ]; then
-    chmod 664 laravel-auth-ai/storage/oauth-public.key
+if [ -f "identity-server/storage/oauth-public.key" ]; then
+    chmod 664 identity-server/storage/oauth-public.key
     log_success "oauth-public.key permission diset ke 664."
 fi
 
@@ -252,5 +252,5 @@ echo ""
 echo "  Untuk menghentikan:"
 echo "    docker compose down"
 echo ""
-log_warn "Jangan lupa atur SMTP di laravel-auth-ai/.env untuk OTP!"
+log_warn "Jangan lupa atur SMTP di identity-server/.env untuk OTP!"
 echo ""

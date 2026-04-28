@@ -4,6 +4,7 @@ use App\Modules\SSO\Controllers\OAuthController;
 use App\Modules\SSO\Controllers\Admin\SsoClientController;
 use App\Modules\SSO\Controllers\Admin\AccessAreaController;
 use App\Modules\SSO\Controllers\Admin\ApplicationController;
+use App\Http\Middleware\SsoSecurityHeadersMiddleware;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,10 +20,10 @@ use Illuminate\Support\Facades\Route;
 
 // Passport Token Routes (Manual Registration)
 Route::group([
-    'as'        => 'passport.',
-    'prefix'    => 'oauth',
-    'namespace' => 'Laravel\Passport\Http\Controllers',
-    'middleware' => ['throttle:sso-token', App\Http\Middleware\SsoSecurityHeadersMiddleware::class],
+    'as'            => 'passport.',
+    'prefix'        => 'oauth',
+    'namespace'     => 'Laravel\Passport\Http\Controllers',
+    'middleware'    => ['throttle:sso-token', SsoSecurityHeadersMiddleware::class],
 ], function () {
     Route::post('/token', [
         'uses' => 'AccessTokenController@issueToken',

@@ -27,11 +27,11 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ./laravel-auth-ai/.env
+      - ./identity-server/.env
     volumes:
       # - app_storage:/var/www/html/storage # Dihapus agar sinkron dengan host dan Nginx
-      - ./laravel-auth-ai:/var/www/html
-      - ./ai-security/.env:/var/www/ai-security/.env
+      - ./identity-server:/var/www/html
+      - ./security-service/.env:/var/www/ai-security/.env
       - vendor_data:/var/www/html/vendor
     networks:
       - internal
@@ -49,7 +49,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./laravel-auth-ai:/var/www/html:ro
+      - ./identity-server:/var/www/html:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - internal
@@ -67,9 +67,9 @@ services:
       - app
       - redis
     env_file:
-      - ./laravel-auth-ai/.env
+      - ./identity-server/.env
     volumes:
-      - ./laravel-auth-ai:/var/www/html
+      - ./identity-server:/var/www/html
       - vendor_data:/var/www/html/vendor
     networks:
       - internal
@@ -87,9 +87,9 @@ services:
       - app
       - db
     env_file:
-      - ./laravel-auth-ai/.env
+      - ./identity-server/.env
     volumes:
-      - ./laravel-auth-ai:/var/www/html
+      - ./identity-server:/var/www/html
       - vendor_data:/var/www/html/vendor
     networks:
       - internal
@@ -99,15 +99,15 @@ services:
   # ------------------------------------------------------------
   fastapi-risk:
     build:
-      context: ./ai-security
+      context: ./security-service
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
-      - ./ai-security/.env
+      - ./security-service/.env
     volumes:
-      - ./ai-security/app/models:/app/app/models
-      - ./ai-security/logs:/app/logs
-      - ./ai-security:/app
+      - ./security-service/app/models:/app/app/models
+      - ./security-service/logs:/app/logs
+      - ./security-service:/app
     ports:
       - "8000:8000"
     networks:
@@ -162,7 +162,7 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     env_file:
-      - ./laravel-auth-ai/.env
+      - ./identity-server/.env
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}

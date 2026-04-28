@@ -1,6 +1,6 @@
 {
-    "name": "laravel/laravel",
-    "description": "Laravel 11 — AI-Powered Authentication System",
+    "name": "mixudev/identity-server",
+    "description": "Identity Server — AI-Powered SSO Provider",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "type": "project",

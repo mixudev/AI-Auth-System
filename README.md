@@ -63,7 +63,7 @@ cd ai-auth-system
 ```
 
 ### 3. Konfigurasi Environment Production
-Pastikan Anda mengubah nilai-nilai berikut di `laravel-auth-ai/.env` untuk keamanan:
+Pastikan Anda mengubah nilai-nilai berikut di `identity-server/.env` untuk keamanan:
 - `APP_ENV=production`
 - `APP_DEBUG=false`
 - `APP_URL=https://nama-domain-anda.com` (Sangat Penting untuk link Reset Password)
@@ -96,16 +96,16 @@ Jika Anda ingin melakukan instalasi secara manual langkah demi langkah, ikuti ur
 
 ### 1. Persiapan File Environment
 ```bash
-cp laravel-auth-ai/.env.example laravel-auth-ai/.env
-cp ai-security/.env.example ai-security/.env
+cp identity-server/.env.example identity-server/.env
+cp security-service/.env.example security-service/.env
 ```
 
 ### 2. Inisialisasi Direktori Storage (Wajib)
 Laravel membutuhkan struktur folder ini agar tidak muncul error `cache path`:
 ```bash
-mkdir -p laravel-auth-ai/storage/framework/{sessions,views,cache}
-mkdir -p laravel-auth-ai/storage/logs
-chmod -R 777 laravel-auth-ai/storage
+mkdir -p identity-server/storage/framework/{sessions,views,cache}
+mkdir -p identity-server/storage/logs
+chmod -R 777 identity-server/storage
 ```
 
 ### 3. Build & Jalankan Database
