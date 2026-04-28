@@ -60,7 +60,7 @@ Sistem mengimplementasikan protokol keamanan berlapis:
 Akses API diatur melalui prefix `/api/v2/`. Berikut adalah beberapa endpoint inti:
 
 | Method | Endpoint | Fungsi | Proteksi |
-| : | : | : | : |
+| :--- | :--- | :--- | :--- |
 | POST | `/api/auth/login` | Autentikasi utama & pengecekan risiko | Public / Rate-limited |
 | POST | `/api/auth/verify-otp` | Verifikasi tantangan MFA | Session-bound |
 | GET | `/api/user/profile` | Mengambil profil pengguna aktif | Bearer Token / Session |
