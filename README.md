@@ -1,7 +1,7 @@
 <div align="center">
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/mixudev/mixuauth?style=for-the-badge&labelColor=0d1117&color=00a396&label=MixuAuth" alt="Version">
+  <img src="https://img.shields.io/github/v/tag/mixudev/mixuauth?style=for-the-badge&labelColor=0d1117&color=00a396&label=MixuAuth" alt="Version">
   <img src="https://img.shields.io/badge/Identity_Server-LTS-00a396?style=for-the-badge&labelColor=0d1117" alt="Status">
 </p>
 
