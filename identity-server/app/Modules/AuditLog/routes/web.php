@@ -6,11 +6,24 @@ use Illuminate\Support\Facades\Route;
 
 /**
  * AuditLog Module Web Routes
- * 
- * Mengatur rute untuk melihat riwayat aktivitas sistem.
+ *
+ * Semua route memerlukan:
+ * - Sudah login (auth) + session/fingerprint valid
+ * - Role: super-admin, admin, atau security-officer
+ * - Permission: audit-logs.view
+ *
+ * Audit log berisi aktivitas seluruh user dan merupakan data sensitif
+ * yang hanya boleh diakses oleh tim keamanan/administrator.
  */
-Route::middleware(['web', 'auth'])->prefix('admin/logs')->name('audit-logs.')->group(function () {
-    
+Route::middleware([
+    'web',
+    'auth',
+    'ensure.session.version',
+    'verify.fingerprint',
+    'role:super-admin,admin,security-officer',
+    'permission:audit-logs.view',
+])->prefix('admin/logs')->name('audit-logs.')->group(function () {
+
     // Pusat Monitoring Terpadu (Auth + Audit)
     Route::get('/', [LogCenterController::class, 'index'])->name('center');
 

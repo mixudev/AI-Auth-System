@@ -16,6 +16,10 @@ class WaGatewayConfigPolicy
     |--------------------------------------------------------------------------
     | Super-admin: akses penuh ke semua config.
     | Admin / security-officer: hanya config milik sendiri (user_id == auth user).
+    |
+    | [FIX] Semua panggilan hasPermissionTo() diganti hasPermission()
+    | karena User model hanya mengimplementasikan hasPermission().
+    | hasPermissionTo() tidak ada dan akan menyebabkan error 500.
     */
 
     /**
@@ -31,29 +35,29 @@ class WaGatewayConfigPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('wa-gateway.view');
+        return $user->hasPermission('wa-gateway.view');
     }
 
     public function view(User $user, WaGatewayConfig $config): bool
     {
-        return $user->hasPermissionTo('wa-gateway.view')
+        return $user->hasPermission('wa-gateway.view')
             && $config->user_id === $user->id;
     }
 
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('wa-gateway.create');
+        return $user->hasPermission('wa-gateway.create');
     }
 
     public function update(User $user, WaGatewayConfig $config): bool
     {
-        return $user->hasPermissionTo('wa-gateway.update')
+        return $user->hasPermission('wa-gateway.update')
             && $config->user_id === $user->id;
     }
 
     public function delete(User $user, WaGatewayConfig $config): bool
     {
-        return $user->hasPermissionTo('wa-gateway.delete')
+        return $user->hasPermission('wa-gateway.delete')
             && $config->user_id === $user->id;
     }
 }

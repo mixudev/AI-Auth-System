@@ -38,13 +38,17 @@ class SecurityHeadersMiddleware
 
             $csp = [
                 "default-src 'self'",
-                "script-src 'self' 'nonce-{$nonce}'", // Diizinkan untuk script dengan nonce khusus
-                "style-src 'self' 'unsafe-inline' fonts.googleapis.com", 
+                // Script dan style menggunakan nonce — tidak ada inline execution tanpa nonce yang valid
+                "script-src 'self' 'nonce-{$nonce}'",
+                // [FIX] Hapus 'unsafe-inline' — gunakan nonce agar inline style hanya diizinkan
+                // jika memiliki atribut nonce yang cocok (mitigasi XSS via style injection)
+                "style-src 'self' 'nonce-{$nonce}' fonts.googleapis.com",
                 "font-src 'self' fonts.gstatic.com",
-                "img-src 'self' data: https://ui-avatars.com", // Izinkan UI avatars
+                "img-src 'self' data: https://ui-avatars.com",
                 "frame-ancestors 'none'",
                 "object-src 'none'",
                 "base-uri 'self'",
+                "upgrade-insecure-requests",
             ];
 
             $response->headers->set('Content-Security-Policy', implode('; ', $csp));

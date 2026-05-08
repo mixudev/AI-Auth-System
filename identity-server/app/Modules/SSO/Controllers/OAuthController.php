@@ -289,20 +289,57 @@ class OAuthController
     /**
      * Redirect ke redirect_uri dengan OAuth error parameter,
      * atau return JSON jika request menerima JSON.
+     *
+     * [FIX - Open Redirect] Sebelumnya langsung redirect()->away() tanpa
+     * memvalidasi redirect_uri. Sekarang URI divalidasi terhadap daftar
+     * redirect_uris yang terdaftar di oauth_clients. Jika tidak valid,
+     * kembalikan error page (abort 400) daripada redirect ke URI arbitrary.
      */
     private function oauthError(Request $request, string $error, string $description): Response|RedirectResponse
     {
-        $redirectUri = $request->query('redirect_uri');
-        $state       = $request->query('state');
+        $redirectUri  = $request->query('redirect_uri');
+        $oauthClientId = $request->query('client_id');
+        $state        = $request->query('state');
 
-        if ($redirectUri) {
-            $separator = str_contains($redirectUri, '?') ? '&' : '?';
-            $url = $redirectUri . $separator . http_build_query([
-                'error'             => $error,
-                'error_description' => $description,
-                'state'             => $state,
+        if ($redirectUri && $oauthClientId) {
+            // Validasi redirect_uri terhadap yang terdaftar sebelum dipakai redirect
+            $registeredUris = DB::table('oauth_clients')
+                ->where('id', $oauthClientId)
+                ->value('redirect_uris');
+
+            $isValidUri = false;
+
+            if ($registeredUris) {
+                $allowedUris      = json_decode($registeredUris, true) ?? [$registeredUris];
+                $normalizedRequest = rtrim($redirectUri, '/');
+
+                foreach ($allowedUris as $uri) {
+                    if (rtrim($uri, '/') === $normalizedRequest) {
+                        $isValidUri = true;
+                        break;
+                    }
+                }
+            }
+
+            // Hanya redirect jika URI valid dan terdaftar
+            if ($isValidUri) {
+                $separator = str_contains($redirectUri, '?') ? '&' : '?';
+                $url = $redirectUri . $separator . http_build_query([
+                    'error'             => $error,
+                    'error_description' => $description,
+                    'state'             => $state,
+                ]);
+
+                return redirect()->away($url);
+            }
+
+            // URI tidak terdaftar — tolak request dengan log peringatan
+            Log::warning('SSO OAuth oauthError: redirect_uri tidak terdaftar, menolak redirect.', [
+                'redirect_uri' => $redirectUri,
+                'client_id'    => $oauthClientId,
+                'error'        => $error,
+                'ip'           => $request->ip(),
             ]);
-            return redirect()->away($url);
         }
 
         if ($request->expectsJson()) {

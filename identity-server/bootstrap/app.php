@@ -52,7 +52,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->validateCsrfTokens(except: [
-            'oauth/*',
+            // Hanya token exchange yang dikecualikan CSRF (public API endpoint).
+            // Endpoint approve/deny OAuth (/oauth/authorize POST/DELETE) tetap
+            // dilindungi CSRF karena diakses via browser form user.
+            'oauth/token',
         ]);
 
         $trustedProxies = array_values(array_filter(array_map(

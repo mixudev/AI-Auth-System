@@ -94,7 +94,13 @@ class RiskFallbackService implements RiskAssessorInterface
             riskScore:   $score,
             decision:    $decision,
             reasonFlags: $reasonFlags,
-            rawResponse: ['source' => 'rule_based_fallback', 'score' => $score],
+            rawResponse: [
+                'source'      => 'rule_based_fallback',
+                'risk_score'  => $score,
+                'decision'    => $decision,
+                'confidence'  => 1.0, // Fallback rule-based dianggap 100% yakin pada rule-nya
+                'is_fallback' => true,
+            ],
             isFallback:  true,
         );
     }

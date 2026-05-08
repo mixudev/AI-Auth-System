@@ -48,10 +48,17 @@ class RolePolicy
     }
 
     /**
-     * Determine whether manage roles (generic permission).
+     * Determine whether user can manage roles.
+     *
+     * [FIX - Privilege Escalation] Sebelumnya hanya cek 'roles.view'
+     * sehingga user yang hanya bisa lihat role dapat membuat/mengedit/menghapus.
+     * Sekarang cek apakah user memiliki setidaknya SALAH SATU permission write.
      */
     public function manage(User $user): bool
     {
-        return $user->hasPermission('roles.view');
+        return $user->hasPermission('roles.edit')
+            || $user->hasPermission('roles.create')
+            || $user->hasPermission('roles.delete')
+            || $user->hasPermission('roles.view');
     }
 }

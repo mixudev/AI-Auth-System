@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'AI Auth System',
+  title: 'MIXUAUTH',
   description: 'Dokumentasi Ekstensif Sistem Autentikasi AI-Powered dan Risk Engine',
   lang: 'id-ID',
   ignoreDeadLinks: true,
@@ -11,8 +11,8 @@ export default defineConfig({
     ['link', { rel: 'icon', href: '/favicon.ico' }],
     ['meta', { name: 'theme-color', content: '#0f172a' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'AI Auth System Docs' }],
-    ['meta', { property: 'og:description', content: 'Dokumentasi teknis, arsitektur, dan operasional AI Auth System' }],
+    ['meta', { property: 'og:title', content: 'MIXUAUTH Docs' }],
+    ['meta', { property: 'og:description', content: 'Dokumentasi teknis, arsitektur, dan operasional MIXUAUTH' }],
   ],
 
   themeConfig: {
@@ -21,6 +21,7 @@ export default defineConfig({
     nav: [
       { text: 'Beranda', link: '/' },
       { text: 'Docs', link: '/guide/' },
+      { text: 'Dev', link: '/developer/' },
       { text: 'API', link: '/api/' },
       { text: 'Changelog', link: 'https://github.com/mixudev/mixuauth/releases' }
     ],
@@ -32,6 +33,7 @@ export default defineConfig({
       '/security/': sharedSidebar(),
       '/auth/': sharedSidebar(),
       '/sso/': sharedSidebar(),
+      '/developer/': sharedSidebar(),
       
       // Sidebar khusus untuk API
       '/api/': [
@@ -148,6 +150,17 @@ function sharedSidebar() {
       items: [
         { text: 'Operasional Harian', link: '/guide/operations' },
         { text: 'Troubleshooting & Runbook', link: '/guide/troubleshooting' },
+      ],
+    },
+    {
+      text: 'Developer Guide',
+      collapsed: false,
+      items: [
+        { text: 'Ikhtisar Developer', link: '/developer/' },
+        { text: 'Integrasi Klien', link: '/developer/client-integration' },
+        { text: 'Timezone Management', link: '/developer/timezone' },
+        { text: 'Audit Logging', link: '/developer/audit-log' },
+        { text: 'Security Client', link: '/developer/security-client' },
       ],
     }
   ]

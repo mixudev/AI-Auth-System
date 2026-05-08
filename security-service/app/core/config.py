@@ -35,10 +35,11 @@ class Settings(BaseSettings):
 
     # ------------------------------------------------------------------
     # Threshold keputusan risiko — dapat disesuaikan tanpa mengubah kode
+    # [FIX] Melonggarkan kebijakan: BLOCK hanya jika skor >= 85
     # ------------------------------------------------------------------
     RISK_THRESHOLD_ALLOW: int = 30   # 0–29  → ALLOW
-    RISK_THRESHOLD_OTP: int = 60     # 30–59 → OTP
-                                     # 60–100 → BLOCK
+    RISK_THRESHOLD_OTP: int = 85     # 30–84 → OTP
+                                     # 85–100 → BLOCK
 
     # ------------------------------------------------------------------
     # Bobot hybrid: AI vs rule-based

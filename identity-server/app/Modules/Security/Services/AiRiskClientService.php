@@ -42,8 +42,11 @@ class AiRiskClientService implements RiskAssessorInterface
         $requestId  = (string) Str::uuid();
         $timestamp  = (string) now()->timestamp;
 
-        // [H-06] HMAC-SHA256 dari payload + timestamp untuk mencegah MITM/replay
-        $hmacSignature = $this->generateHmacSignature($payload, $timestamp, (string) $apiKey);
+        // [H-06 FIX] Pastikan JSON encoding konsisten antara signature dan body.
+        // Jika kita biarkan Http::post melakukan encoding sendiri, formatnya bisa berbeda
+        // (misal: penanganan slash atau spasi) yang menyebabkan signature mismatch.
+        $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $hmacSignature = $this->generateHmacSignatureRaw($jsonPayload, $timestamp, (string) $apiKey);
 
         try {
             $response = Http::timeout($timeout)
@@ -53,10 +56,10 @@ class AiRiskClientService implements RiskAssessorInterface
                     'X-Request-ID'     => $requestId,
                     'X-Timestamp'      => $timestamp,
                     'X-HMAC-Signature' => $hmacSignature,
-                    'Content-Type'     => 'application/json',
                     'Accept'           => 'application/json',
                 ])
-                ->post("{$baseUrl}{$endpoint}", $payload);
+                ->withBody($jsonPayload, 'application/json')
+                ->post("{$baseUrl}{$endpoint}");
 
             $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
 
@@ -132,9 +135,13 @@ class AiRiskClientService implements RiskAssessorInterface
      *
      * Format yang di-sign: sha256( json(payload) + "|" + timestamp )
      */
-    private function generateHmacSignature(array $payload, string $timestamp, string $secret): string
+    /**
+     * Generate HMAC-SHA256 signature dari JSON string + timestamp.
+     * FastAPI harus memverifikasi signature ini menggunakan shared secret.
+     */
+    private function generateHmacSignatureRaw(string $jsonPayload, string $timestamp, string $secret): string
     {
-        $data = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '|' . $timestamp;
+        $data = $jsonPayload . '|' . $timestamp;
         return hash_hmac('sha256', $data, $secret);
     }
 

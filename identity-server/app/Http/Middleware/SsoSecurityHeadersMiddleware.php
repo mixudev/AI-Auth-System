@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -12,6 +13,9 @@ use Symfony\Component\HttpFoundation\Response;
  * Menambahkan HTTP Security Headers ke semua response SSO.
  * Melindungi dari: Clickjacking, MIME sniffing, XSS reflection, CSRF via Referrer,
  * dan protocol downgrade (HSTS).
+ *
+ * [FIX] 'unsafe-inline' dihapus dari script-src dan style-src.
+ * Diganti dengan nonce-based CSP yang konsisten dengan SecurityHeadersMiddleware.
  *
  * Daftarkan di SSOServiceProvider pada route group SSO.
  */
@@ -42,18 +46,26 @@ class SsoSecurityHeadersMiddleware
             );
         }
 
-        // Content Security Policy — ketat untuk halaman OAuth/SSO
-        // Izinkan: self, font Google, FA CDN, dan inline style terbatas
+        // Ambil nonce yang sudah di-share oleh SecurityHeadersMiddleware (jika ada),
+        // atau generate nonce baru khusus untuk SSO pages.
+        $nonce = view()->shared('cspNonce') ?? Str::random(40);
+
+        // [FIX] Hapus 'unsafe-inline' dari script-src dan style-src.
+        // Semua inline script/style di Blade views harus menggunakan atribut
+        // nonce="{{ $cspNonce }}" agar diizinkan CSP.
         $csp = implode('; ', [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline'",            // inline JS di blade views
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+            // [FIX] Ganti 'unsafe-inline' dengan nonce — cegah arbitrary JS injection
+            "script-src 'self' 'nonce-{$nonce}'",
+            // [FIX] Ganti 'unsafe-inline' dengan nonce — cegah style injection XSS
+            "style-src 'self' 'nonce-{$nonce}' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
             "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
             "img-src 'self' data: https:",
             "connect-src 'self'",
-            "frame-ancestors 'none'",                        // redundan dengan X-Frame-Options, defense-in-depth
-            "form-action 'self'",                            // form hanya boleh submit ke domain sendiri
+            "frame-ancestors 'none'",
+            "form-action 'self'",
             "base-uri 'self'",
+            "upgrade-insecure-requests",
         ]);
         $response->headers->set('Content-Security-Policy', $csp);
 

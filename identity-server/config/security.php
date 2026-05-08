@@ -15,9 +15,8 @@ return [
     | Semua nilai dapat disesuaikan tanpa mengubah logika aplikasi.
     */
     'risk_thresholds' => [
-        'allow'  => 30,   // risk_score < 30 → login langsung diterima
-        'otp'    => 60,   // risk_score 30–59 → wajib verifikasi OTP
-        // risk_score >= 60 → login diblokir otomatis
+        'allow'  => (int) env('RISK_THRESHOLD_ALLOW', 30),
+        'otp'    => (int) env('RISK_THRESHOLD_OTP', 85),
     ],
 
     /*

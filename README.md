@@ -57,15 +57,15 @@ Sistem mengimplementasikan protokol keamanan berlapis:
 
 ## 4. Dokumentasi Endpoint Utama
 
-Akses API diatur melalui prefix `/api/v2/`. Berikut adalah beberapa endpoint inti:
+Akses API diatur melalui prefix `/api/`. Berikut adalah beberapa endpoint inti:
 
 | Method | Endpoint | Fungsi | Proteksi |
 | :--- | :--- | :--- | :--- |
-| POST | `/api/auth/login` | Autentikasi utama & pengecekan risiko | Public / Rate-limited |
-| POST | `/api/auth/verify-otp` | Verifikasi tantangan MFA | Session-bound |
-| GET | `/api/user/profile` | Mengambil profil pengguna aktif | Bearer Token / Session |
-| POST | `/api/oauth/token` | Penerbitan token akses OAuth2 | Client Secret |
-| POST | `/api/auth/logout` | Terminasi sesi global & webhook | Auth Required |
+| POST | `/api/auth/login` | Autentikasi utama & pengecekan risiko AI | Public / Rate-limited |
+| POST | `/api/auth/mfa/verify` | Verifikasi kode OTP / tantangan MFA | Session-bound |
+| GET | `/api/user` | Mengambil profil pengguna aktif (SSO) | Bearer Token |
+| POST | `/api/auth/forgot-password` | Inisialisasi reset password via email | Public |
+| POST | `/api/auth/logout` | Terminasi sesi aktif & revoke token | Auth Required |
 
 
 
