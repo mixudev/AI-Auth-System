@@ -44,11 +44,20 @@ log_success "Koneksi internet aktif."
 
 log_info "Memeriksa dependencies..."
 
-command -v docker      >/dev/null 2>&1 || log_error "Docker tidak ditemukan. Install dari https://docker.com"
+# Cek Docker
+if command -v docker >/dev/null 2>&1; then
+    log_success "Docker ditemukan."
+else
+    log_error "Docker tidak ditemukan. Install dari https://docker.com"
+fi
 
-# Perbaikan cek docker compose v2
-if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
-    log_error "Docker Compose tidak ditemukan."
+# Cek Docker Compose (Coba berbagai variasi)
+if docker compose version >/dev/null 2>&1; then
+    log_success "Docker Compose (v2) ditemukan."
+elif command -v docker-compose >/dev/null 2>&1; then
+    log_success "Docker Compose (legacy) ditemukan."
+else
+    log_error "Docker Compose tidak ditemukan. Pastikan 'docker compose' atau 'docker-compose' terinstall."
 fi
 
 log_success "Docker tersedia."
