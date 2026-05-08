@@ -48,13 +48,15 @@ services:
     restart: unless-stopped
     depends_on:
       - app
-    ports:
-      - "127.0.0.1:8080:80"
+    ports: []           
+    expose:
+      - "80"            # cukup expose ke sesama container
     volumes:
       - ./identity-server:/var/www/html:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - internal
+      - proxy-network
 
   # ------------------------------------------------------------
   # Queue Worker untuk pengiriman OTP (email async)
@@ -133,10 +135,12 @@ services:
       - docs_node_modules:/app/node_modules
     command: >
       sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 8090"
-    ports:
-      - "127.0.0.1:8090:8090"
+    ports: []
+    expose:
+      - "8090"
     networks:
       - internal
+      - proxy-network
 
   # ------------------------------------------------------------
   # phpMyAdmin (development only)
@@ -152,10 +156,12 @@ services:
       PMA_USER: root
       PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    ports:
-      - "127.0.0.1:8081:80"
+    ports: []
+    expose:
+      - "80"
     networks:
       - internal
+      - proxy-network
 
   # ------------------------------------------------------------
   # MySQL Database
@@ -213,3 +219,5 @@ volumes:
 networks:
   internal:
     driver: bridge
+  proxy-network:
+    external: true    
