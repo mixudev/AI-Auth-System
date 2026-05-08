@@ -153,9 +153,24 @@ if [ -z "$CURRENT_DB_PWD" ] || [ "$CURRENT_DB_PWD" = 'secret123' ] || [ "$CURREN
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" identity-server/.env
 fi
 
-# 4. Auto-Detect SERVER_IP & APP_URL
-log_info "Mendeteksi IP Publik Server secara otomatis..."
-DETECTED_IP=$(curl -s --max-time 5 ifconfig.me || curl -s --max-time 5 icanhazip.com || echo "")
+# 4. Auto-Detect SERVER_IP & APP_URL (VPS vs Local)
+log_info "Mendeteksi lingkungan (VPS vs Local)..."
+
+# Cek apakah ini VPS (menggunakan folder Docker Server Kit sebagai penanda)
+IS_VPS=false
+if [ -d "/srv/proxy" ]; then
+    IS_VPS=true
+    log_info "Lingkungan VPS terdeteksi."
+else
+    log_info "Lingkungan Local (Laptop) terdeteksi."
+fi
+
+if [ "$IS_VPS" = true ]; then
+    log_info "Mendeteksi IP Publik Server..."
+    DETECTED_IP=$(curl -s --max-time 5 ifconfig.me || curl -s --max-time 5 icanhazip.com || echo "")
+else
+    DETECTED_IP="127.0.0.1"
+fi
 
 if [ -z "$DETECTED_IP" ]; then
     log_warn "Gagal deteksi IP otomatis. Menggunakan IP dari .env..."
@@ -163,7 +178,7 @@ if [ -z "$DETECTED_IP" ]; then
 fi
 
 if [ -n "$DETECTED_IP" ]; then
-    log_success "IP Terdeteksi: $DETECTED_IP"
+    log_success "IP yang digunakan: $DETECTED_IP"
     
     # Update root .env
     sed -i "s|^SERVER_IP=.*|SERVER_IP=$DETECTED_IP|" .env 2>/dev/null || echo "SERVER_IP=$DETECTED_IP" >> .env
@@ -172,7 +187,7 @@ if [ -n "$DETECTED_IP" ]; then
     if [ -f "identity-server/.env" ]; then
         sed -i "s|^SERVER_IP=.*|SERVER_IP=$DETECTED_IP|" identity-server/.env 2>/dev/null || echo "SERVER_IP=$DETECTED_IP" >> identity-server/.env
         
-        # Gunakan format literal ${SERVER_IP} agar dinamis di Laravel
+        # APP_URL tetap dinamis
         NEW_APP_URL='http://auth.${SERVER_IP}.nip.io'
         sed -i "s|^APP_URL=.*|APP_URL=$NEW_APP_URL|" identity-server/.env 2>/dev/null || echo "APP_URL=$NEW_APP_URL" >> identity-server/.env
     fi
