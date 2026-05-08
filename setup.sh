@@ -42,6 +42,24 @@ fi
 
 log_success "Koneksi internet aktif."
 
+# ----------------------------------------------------------
+# Auto-Fix Line Endings (Windows CRLF to Linux LF)
+# ----------------------------------------------------------
+log_info "Memperbaiki format file (Windows to Linux conversion)..."
+find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} +
+find . -type f -name ".env*" -exec sed -i 's/\r$//' {} +
+
+# ----------------------------------------------------------
+# Memastikan proxy-network tersedia
+# ----------------------------------------------------------
+log_info "Memeriksa ketersediaan proxy-network..."
+if ! docker network ls | grep -q "proxy-network"; then
+    log_warn "Network 'proxy-network' tidak ditemukan."
+    log_info "Mencoba membuat 'proxy-network' secara otomatis..."
+    docker network create proxy-network || log_error "Gagal membuat proxy-network. Pastikan Docker berjalan."
+fi
+log_success "Proxy-network siap."
+
 log_info "Memeriksa dependencies..."
 
 # Cek Docker
@@ -135,25 +153,28 @@ if [ -z "$CURRENT_DB_PWD" ] || [ "$CURRENT_DB_PWD" = 'secret123' ] || [ "$CURREN
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" identity-server/.env
 fi
 
-# 4. SERVER_IP & APP_URL
-CURRENT_SERVER_IP=$(grep "^SERVER_IP=" .env | cut -d'=' -f2-)
-if [ -n "$CURRENT_SERVER_IP" ]; then
-    log_info "Sinkronisasi SERVER_IP: $CURRENT_SERVER_IP"
+# 4. Auto-Detect SERVER_IP & APP_URL
+log_info "Mendeteksi IP Publik Server secara otomatis..."
+DETECTED_IP=$(curl -s --max-time 5 ifconfig.me || curl -s --max-time 5 icanhazip.com || echo "")
+
+if [ -z "$DETECTED_IP" ]; then
+    log_warn "Gagal deteksi IP otomatis. Menggunakan IP dari .env..."
+    DETECTED_IP=$(grep "^SERVER_IP=" .env | cut -d'=' -f2-)
+fi
+
+if [ -n "$DETECTED_IP" ]; then
+    log_success "IP Terdeteksi: $DETECTED_IP"
     
-    # Update Laravel .env dengan SERVER_IP
-    if grep -q "^SERVER_IP=" identity-server/.env; then
-        sed -i "s|^SERVER_IP=.*|SERVER_IP=$CURRENT_SERVER_IP|" identity-server/.env
-    else
-        echo "SERVER_IP=$CURRENT_SERVER_IP" >> identity-server/.env
-    fi
+    # Update root .env
+    sed -i "s|^SERVER_IP=.*|SERVER_IP=$DETECTED_IP|" .env 2>/dev/null || echo "SERVER_IP=$DETECTED_IP" >> .env
     
-    # Pastikan APP_URL di Laravel menggunakan variabel SERVER_IP (dynamic interpolation)
-    # Kita menggunakan format literal agar Laravel yang memprosesnya
-    NEW_APP_URL='http://auth.${SERVER_IP}.nip.io'
-    if grep -q "^APP_URL=" identity-server/.env; then
-        sed -i "s|^APP_URL=.*|APP_URL=$NEW_APP_URL|" identity-server/.env
-    else
-        echo "APP_URL=$NEW_APP_URL" >> identity-server/.env
+    # Update Laravel .env
+    if [ -f "identity-server/.env" ]; then
+        sed -i "s|^SERVER_IP=.*|SERVER_IP=$DETECTED_IP|" identity-server/.env 2>/dev/null || echo "SERVER_IP=$DETECTED_IP" >> identity-server/.env
+        
+        # Gunakan format literal ${SERVER_IP} agar dinamis di Laravel
+        NEW_APP_URL='http://auth.${SERVER_IP}.nip.io'
+        sed -i "s|^APP_URL=.*|APP_URL=$NEW_APP_URL|" identity-server/.env 2>/dev/null || echo "APP_URL=$NEW_APP_URL" >> identity-server/.env
     fi
 fi
 

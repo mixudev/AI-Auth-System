@@ -48,9 +48,9 @@ services:
     restart: unless-stopped
     depends_on:
       - app
-    ports: []           
+    ports: []
     expose:
-      - "80"            # cukup expose ke sesama container
+      - "80" # cukup expose ke sesama container
     volumes:
       - ./identity-server:/var/www/html:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -117,7 +117,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -184,10 +184,10 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      test: mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 15
       start_period: 60s
 
   # ------------------------------------------------------------
@@ -204,7 +204,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -220,4 +220,4 @@ networks:
   internal:
     driver: bridge
   proxy-network:
-    external: true    
+    external: true
