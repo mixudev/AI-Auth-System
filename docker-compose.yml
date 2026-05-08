@@ -177,17 +177,17 @@ services:
       MYSQL_PASSWORD: "${DB_PASSWORD}"
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
     volumes:
-      - db_data:/var/lib/mysql
+      - db_final_prod:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     ports:
       - "127.0.0.1:3307:3306"
     networks:
       - internal
     healthcheck:
-      test: mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
-      retries: 15
+      retries: 20
       start_period: 60s
 
   # ------------------------------------------------------------
@@ -210,7 +210,7 @@ services:
       retries: 5
 
 volumes:
-  db_data:
+  db_final_prod:
   redis_data:
   app_storage:
   vendor_data:
