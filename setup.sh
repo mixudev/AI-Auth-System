@@ -121,7 +121,29 @@ if [ -z "$CURRENT_DB_PWD" ] || [ "$CURRENT_DB_PWD" = 'secret123' ] || [ "$CURREN
     sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" identity-server/.env
 fi
 
-log_success "Kredensial keamanan telah diperbarui."
+# 4. SERVER_IP & APP_URL
+CURRENT_SERVER_IP=$(grep "^SERVER_IP=" .env | cut -d'=' -f2-)
+if [ -n "$CURRENT_SERVER_IP" ]; then
+    log_info "Sinkronisasi SERVER_IP: $CURRENT_SERVER_IP"
+    
+    # Update Laravel .env dengan SERVER_IP
+    if grep -q "^SERVER_IP=" identity-server/.env; then
+        sed -i "s|^SERVER_IP=.*|SERVER_IP=$CURRENT_SERVER_IP|" identity-server/.env
+    else
+        echo "SERVER_IP=$CURRENT_SERVER_IP" >> identity-server/.env
+    fi
+    
+    # Pastikan APP_URL di Laravel menggunakan variabel SERVER_IP (dynamic interpolation)
+    # Kita menggunakan format literal agar Laravel yang memprosesnya
+    NEW_APP_URL='http://auth.${SERVER_IP}.nip.io'
+    if grep -q "^APP_URL=" identity-server/.env; then
+        sed -i "s|^APP_URL=.*|APP_URL=$NEW_APP_URL|" identity-server/.env
+    else
+        echo "APP_URL=$NEW_APP_URL" >> identity-server/.env
+    fi
+fi
+
+log_success "Kredensial keamanan dan konfigurasi IP telah diperbarui."
 
 
 # ----------------------------------------------------------
@@ -245,11 +267,11 @@ echo "=============================================="
 echo -e "${GREEN}  Setup selesai!${NC}"
 echo "=============================================="
 echo ""
-echo "  Laravel App  : http://localhost:8080"
-echo "  Laravel API  : http://localhost:8080/api"
-echo "  FastAPI      : http://localhost:8000/health"
-echo "  phpMyAdmin   : http://localhost:8081"
-echo "  Dokumentasi  : http://localhost:8090"
+echo "  Laravel App  : http://auth.${CURRENT_SERVER_IP}.nip.io"
+echo "  Laravel API  : http://auth.${CURRENT_SERVER_IP}.nip.io/api"
+echo "  FastAPI      : http://localhost:8000/health (Internal)"
+echo "  phpMyAdmin   : http://pma.${CURRENT_SERVER_IP}.nip.io"
+echo "  Dokumentasi  : http://docs.${CURRENT_SERVER_IP}.nip.io"
 echo ""
 echo "  Untuk melihat log:"
 echo "    docker compose logs -f app"

@@ -32,13 +32,13 @@ cd /var/www/mixuauth
 Buat file konfigurasi baru di host VPS untuk mengatur routing domain.
 
 **File:** `/etc/nginx/sites-available/mixuauth`
-*(Ganti `123.123.123.123` dengan IP VPS Anda)*
+*(Ganti `180.247.240.82` dengan IP VPS Anda)*
 
 ```nginx
 # 1. Aplikasi Utama (Laravel)
 server {
     listen 80;
-    server_name auth.123.123.123.123.nip.io;
+    server_name auth.180.247.240.82.nip.io;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -52,7 +52,7 @@ server {
 # 2. Dokumentasi (VitePress)
 server {
     listen 80;
-    server_name docs.123.123.123.123.nip.io;
+    server_name docs.180.247.240.82.nip.io;
 
     location / {
         proxy_pass http://127.0.0.1:8090;
@@ -66,7 +66,7 @@ server {
 # 3. Database Manager (phpMyAdmin)
 server {
     listen 80;
-    server_name pma.123.123.123.123.nip.io;
+    server_name pma.180.247.240.82.nip.io;
 
     location / {
         proxy_pass http://127.0.0.1:8081;
@@ -89,7 +89,7 @@ sudo systemctl restart nginx
 Pastikan file `.env` di dalam `identity-server/` sudah disesuaikan dengan domain baru.
 
 ```env
-APP_URL=http://auth.123.123.123.123.nip.io
+APP_URL=http://auth.180.247.240.82.nip.io
 TRUSTED_PROXIES=*
 ```
 
