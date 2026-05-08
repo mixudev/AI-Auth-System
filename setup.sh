@@ -199,8 +199,8 @@ docker compose build --no-cache
 log_info "Menjalankan containers..."
 docker compose up -d db redis
 
-log_info "Menunggu database siap..."
-sleep 15
+log_info "Menunggu database siap (inisialisasi awal)..."
+sleep 30
 
 # ----------------------------------------------------------
 # Setup Laravel
