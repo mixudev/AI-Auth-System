@@ -39,15 +39,15 @@ log_info "Memeriksa koneksi internet..."
 if ! curl -s --head --request GET http://www.google.com | grep "200 OK" > /dev/null; then
     log_error "Koneksi internet tidak terdeteksi! Pastikan Anda terhubung ke internet untuk mendownload library dan Docker images."
 fi
+
 log_success "Koneksi internet aktif."
 
 log_info "Memeriksa dependencies..."
 
-command -v docker >/dev/null 2>&1 || log_error "Docker tidak ditemukan."
+command -v docker      >/dev/null 2>&1 || log_error "Docker tidak ditemukan. Install dari https://docker.com"
 
-if docker compose version >/dev/null 2>&1; then
-    log_success "Docker Compose v2 tersedia."
-else
+# Perbaikan cek docker compose v2
+if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
     log_error "Docker Compose tidak ditemukan."
 fi
 
