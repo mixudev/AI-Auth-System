@@ -33,9 +33,8 @@ FROM base AS production
 
 WORKDIR /app
 
-# Salin packages Python yang sudah diinstall dari stage deps
-COPY --from=deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=deps /usr/local/bin /usr/local/bin
+# Salin seluruh library dan binary Python yang sudah diinstall dari stage deps
+COPY --from=deps /usr/local /usr/local
 
 # Salin source code
 COPY app/ ./app/
