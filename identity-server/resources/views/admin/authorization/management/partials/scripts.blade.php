@@ -3,9 +3,9 @@
     const CSRF = '{{ csrf_token() }}';
     const ENDPOINTS = {
         roles: {
-            store: '{{ route("dashboard.roles.store") }}',
-            update: (id) => `{{ url("dashboard/roles") }}/${id}`,
-            destroy: (id) => `{{ url("dashboard/roles") }}/${id}`,
+            store: '{{ route("dashboard.access-management.roles.store") }}',
+            update: (id) => `{{ url("dashboard/access-management/roles") }}/${id}`,
+            destroy: (id) => `{{ url("dashboard/access-management/roles") }}/${id}`,
         },
         assign: '{{ route("dashboard.access-management.assign") }}',
     };
