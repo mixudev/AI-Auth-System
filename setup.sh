@@ -282,6 +282,19 @@ docker compose run --rm -u root app php artisan key:generate --no-interaction
 log_info "Generate dan sinkronisasi AI API Key..."
 docker compose run --rm -u root app php artisan ai:generate-key --no-interaction
 
+# Sinkronisasi Manual dari Host ke FastAPI .env
+AI_KEY=$(grep "AI_RISK_API_KEY=" identity-server/.env | cut -d '=' -f2 | tr -d '"')
+if [ -n "$AI_KEY" ]; then
+    if [ -f "security-service/.env" ]; then
+        sed -i "s|^API_KEY=.*|API_KEY=$AI_KEY|" security-service/.env
+        log_success "AI API Key berhasil disinkronkan ke security-service/.env"
+    else
+        log_warn "File security-service/.env tidak ditemukan, lewati sinkronisasi."
+    fi
+else
+    log_error "Gagal mengambil AI_RISK_API_KEY dari Laravel .env"
+fi
+
 log_info "Menjalankan database migration..."
 docker compose run --rm -u root app php artisan migrate --no-interaction --force
 

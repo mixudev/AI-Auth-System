@@ -6,6 +6,16 @@ export default defineConfig({
   lang: 'id-ID',
   ignoreDeadLinks: true,
   outDir: './.vitepress/dist',
+  // Add your local IP address here so it works in your browser
+  vite: {
+    server: {
+      allowedHosts: [
+        '.nip.io',
+        '[127.0.0.1]',
+        '[IP_ADDRESS]'
+      ]
+    }
+  },
 
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }],
