@@ -56,9 +56,9 @@ class AppServiceProvider extends ServiceProvider
         Passport::loadKeysFrom(storage_path());
 
         // Paksa koneksi HTTPS di environment production
-        if ($this->app->environment('production')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
-        }
+        // if ($this->app->environment('production')) {
+        //     \Illuminate\Support\Facades\URL::forceScheme('https');
+        // }
 
         // ── RBAC Gate ─────────────────────────────────────────────────────────
         // Gate rules and Role/Permission policies have been moved to App\Modules\Authorization\AuthorizationServiceProvider

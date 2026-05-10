@@ -255,10 +255,10 @@ sleep 60
 # Setup Laravel
 # ----------------------------------------------------------
 log_info "Menyiapkan direktori storage dan izin akses..."
-docker compose run --rm -u root app mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs
+docker compose run --rm -u root app mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs bootstrap/cache
 docker compose run --rm -u root app touch storage/logs/laravel.log
-docker compose run --rm -u root app chown -R www-data:www-data storage
-docker compose run --rm -u root app chmod -R 775 storage
+docker compose run --rm -u root app chown -R www-data:www-data storage bootstrap/cache
+docker compose run --rm -u root app chmod -R 775 storage bootstrap/cache
 # Khusus log, beri akses tulis penuh sementara agar tidak error saat instalasi
 docker compose run --rm -u root app chmod 666 storage/logs/laravel.log
 
