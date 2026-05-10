@@ -1,4 +1,4 @@
-<x-email-base-text heading="Kode Verifikasi Login">
+<x-email.base-text heading="Kode Verifikasi Login">
 
 Halo {{ $userName }},
 

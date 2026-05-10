@@ -1,4 +1,4 @@
-<x-email-base-text heading="Reset Password">
+<x-email.base-text heading="Reset Password">
 
 Halo {{ $userName }},
 

@@ -1,4 +1,4 @@
-<x-email-base-text heading="Selamat Datang di {{ config('app.name') }}">
+<x-email.base-text heading="Selamat Datang di {{ config('app.name') }}">
 
 Halo {{ $userName }},
 
