@@ -112,45 +112,58 @@ log_info "Mengamankan kredensial sistem..."
 [ -f "identity-server/.env" ] || touch identity-server/.env
 
 # 1. REDIS_PASSWORD
-CURRENT_REDIS_PWD=$(grep "^REDIS_PASSWORD=" .env | cut -d'=' -f2-)
-if [ -z "$CURRENT_REDIS_PWD" ] || [ "$CURRENT_REDIS_PWD" = "" ]; then
+CURRENT_REDIS_PWD=$(grep "^REDIS_PASSWORD=" .env | cut -d'=' -f2- | tr -d '\r')
+if [ -z "$CURRENT_REDIS_PWD" ]; then
     log_info "Generating new REDIS_PASSWORD..."
-    NEW_REDIS_PWD=$(generate_random_string 32)
-    
-    # Update root .env
+    CURRENT_REDIS_PWD=$(generate_random_string 32)
     if grep -q "^REDIS_PASSWORD=" .env; then
-        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$NEW_REDIS_PWD|" .env
+        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$CURRENT_REDIS_PWD|" .env
     else
-        echo "REDIS_PASSWORD=$NEW_REDIS_PWD" >> .env
+        echo "REDIS_PASSWORD=$CURRENT_REDIS_PWD" >> .env
     fi
-    
-    # Update Laravel .env
+fi
+
+# Always sync to Laravel .env
+if [ -f "identity-server/.env" ]; then
     if grep -q "^REDIS_PASSWORD=" identity-server/.env; then
-        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$NEW_REDIS_PWD|" identity-server/.env
+        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$CURRENT_REDIS_PWD|" identity-server/.env
     else
-        echo "REDIS_PASSWORD=$NEW_REDIS_PWD" >> identity-server/.env
+        echo "REDIS_PASSWORD=$CURRENT_REDIS_PWD" >> identity-server/.env
     fi
 fi
 
 # 2. MYSQL_ROOT_PASSWORD
-CURRENT_MYSQL_ROOT=$(grep "^MYSQL_ROOT_PASSWORD=" .env | cut -d'=' -f2-)
+CURRENT_MYSQL_ROOT=$(grep "^MYSQL_ROOT_PASSWORD=" .env | cut -d'=' -f2- | tr -d '\r')
 if [ -z "$CURRENT_MYSQL_ROOT" ] || [ "$CURRENT_MYSQL_ROOT" = 'root_secure_9283_password_!' ] || [ "$CURRENT_MYSQL_ROOT" = 'ZQ!8pV@r6FJxkNwD7m2C' ]; then
     log_info "Generating new MYSQL_ROOT_PASSWORD..."
-    NEW_MYSQL_ROOT=$(generate_random_string 32)
-    sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" .env
-    
-    # Laravel .env might have it with a typo or correct name
-    sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" identity-server/.env
-    sed -i "s|^MSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT|" identity-server/.env
+    CURRENT_MYSQL_ROOT=$(generate_random_string 32)
+    sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$CURRENT_MYSQL_ROOT|" .env
+fi
+
+# Always sync to Laravel .env (handling both variants)
+if [ -f "identity-server/.env" ]; then
+    sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$CURRENT_MYSQL_ROOT|" identity-server/.env
+    sed -i "s|^MSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$CURRENT_MYSQL_ROOT|" identity-server/.env
+    if ! grep -q "^MYSQL_ROOT_PASSWORD=" identity-server/.env; then
+        echo "MYSQL_ROOT_PASSWORD=$CURRENT_MYSQL_ROOT" >> identity-server/.env
+    fi
 fi
 
 # 3. DB_PASSWORD
-CURRENT_DB_PWD=$(grep "^DB_PASSWORD=" identity-server/.env | cut -d'=' -f2-)
+CURRENT_DB_PWD=$(grep "^DB_PASSWORD=" .env | cut -d'=' -f2- | tr -d '\r')
 if [ -z "$CURRENT_DB_PWD" ] || [ "$CURRENT_DB_PWD" = 'secret123' ] || [ "$CURRENT_DB_PWD" = 'W9sLeP7T@x4RkM!2cHf' ] || [ "$CURRENT_DB_PWD" = 'app_secure_7261_password_fsaA' ]; then
     log_info "Generating new DB_PASSWORD..."
-    NEW_DB_PWD=$(generate_random_string 32)
-    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" .env
-    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$NEW_DB_PWD|" identity-server/.env
+    CURRENT_DB_PWD=$(generate_random_string 32)
+    sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$CURRENT_DB_PWD|" .env
+fi
+
+# Always sync to Laravel .env
+if [ -f "identity-server/.env" ]; then
+    if grep -q "^DB_PASSWORD=" identity-server/.env; then
+        sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$CURRENT_DB_PWD|" identity-server/.env
+    else
+        echo "DB_PASSWORD=$CURRENT_DB_PWD" >> identity-server/.env
+    fi
 fi
 
 # 4. Auto-Detect SERVER_IP & APP_URL (VPS vs Local)
@@ -241,9 +254,13 @@ sleep 60
 # ----------------------------------------------------------
 # Setup Laravel
 # ----------------------------------------------------------
-log_info "Menyiapkan direktori storage di dalam container..."
+log_info "Menyiapkan direktori storage dan izin akses..."
 docker compose run --rm -u root app mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs
+docker compose run --rm -u root app touch storage/logs/laravel.log
 docker compose run --rm -u root app chown -R www-data:www-data storage
+docker compose run --rm -u root app chmod -R 775 storage
+# Khusus log, beri akses tulis penuh sementara agar tidak error saat instalasi
+docker compose run --rm -u root app chmod 666 storage/logs/laravel.log
 
 log_info "Instal dependensi PHP (composer)..."
 # PHP 8.3+ wajib untuk Laravel 13. Docker image menggunakan PHP 8.4 (sudah memenuhi syarat).
