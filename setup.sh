@@ -267,28 +267,28 @@ log_info "Instal dependensi PHP (composer)..."
 docker compose run --rm -u root app sh -c "composer install --no-interaction --optimize-autoloader && chown -R www-data:www-data vendor"
 
 log_info "Membersihkan cache setelah instalasi dependensi..."
-docker compose run --rm app php artisan config:clear
-docker compose run --rm app php artisan route:clear
-docker compose run --rm app php artisan view:clear
-docker compose run --rm app php artisan cache:clear
-docker compose run --rm app php artisan event:clear
+docker compose run --rm -u root app php artisan config:clear
+docker compose run --rm -u root app php artisan route:clear
+docker compose run --rm -u root app php artisan view:clear
+docker compose run --rm -u root app php artisan cache:clear
+docker compose run --rm -u root app php artisan event:clear
 
 log_info "Membersihkan file-file legacy..."
 docker compose run --rm -u root app rm -f app/Services/User/UserServiceold.php
 
 log_info "Generate Laravel APP_KEY..."
-docker compose run --rm app php artisan key:generate --no-interaction
+docker compose run --rm -u root app php artisan key:generate --no-interaction
 
 log_info "Generate dan sinkronisasi AI API Key..."
-docker compose run --rm app php artisan ai:generate-key --no-interaction
+docker compose run --rm -u root app php artisan ai:generate-key --no-interaction
 
 log_info "Menjalankan database migration..."
-docker compose run --rm app php artisan migrate --no-interaction --force
+docker compose run --rm -u root app php artisan migrate --no-interaction --force
 
 log_info "Meng-cache konfigurasi Laravel..."
-docker compose run --rm app php artisan config:cache
-docker compose run --rm app php artisan route:cache
-docker compose run --rm app php artisan view:cache
+docker compose run --rm -u root app php artisan config:cache
+docker compose run --rm -u root app php artisan route:cache
+docker compose run --rm -u root app php artisan view:cache
 
 log_success "Laravel setup selesai."
 
